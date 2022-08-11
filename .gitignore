@@ -6,6 +6,10 @@ dist
 ##########################
 __pycache__
 
+# pytest generated files #
+##########################
+.pytest_cache
+
 # OS generated files #
 ######################
 .DS_Store*

@@ -4,6 +4,7 @@ breadth first searching.
 """
 
 from ...base import Queue
+from ...utils._check import check_valid_int
 
 
 def bfs(adj_mat, start_node, end_node, return_visited=False):
@@ -33,6 +34,15 @@ def bfs(adj_mat, start_node, end_node, return_visited=False):
     visited : list
         The order of nodes being visited.
     """
+
+    start_node = check_valid_int(
+        start_node,
+        lower=0, variable_name='start_node'
+    )
+    end_node = check_valid_int(
+        end_node,
+        lower=0, variable_name='end_node'
+    )
 
     path_queue = Queue()
     path_queue.push([start_node])

@@ -5,6 +5,8 @@ often used to observe the structure of a graph.
 
 import numpy as np
 
+from ...utils._check import check_valid_int
+
 
 def random_walk(adj_mat, start_node, path_length):
     r"""Random walk is an algorithm for traversing and searching
@@ -26,6 +28,15 @@ def random_walk(adj_mat, start_node, path_length):
     path : list
         The path from start node using random walk.
     """
+
+    start_node = check_valid_int(
+        start_node,
+        lower=0, variable_name='start_node'
+    )
+    path_length = check_valid_int(
+        path_length,
+        lower=0, variable_name='path_length'
+    )
 
     path = [start_node]
 

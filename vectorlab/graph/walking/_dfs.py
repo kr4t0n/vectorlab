@@ -4,6 +4,7 @@ depth first searching.
 """
 
 from ...base import Stack
+from ...utils._check import check_valid_int
 
 
 def dfs(adj_mat, start_node, end_node, return_visited=False):
@@ -32,6 +33,15 @@ def dfs(adj_mat, start_node, end_node, return_visited=False):
     visited : list
         The order of nodes being visited.
     """
+
+    start_node = check_valid_int(
+        start_node,
+        lower=0, variable_name='start_node'
+    )
+    end_node = check_valid_int(
+        end_node,
+        lower=0, variable_name='end_node'
+    )
 
     path_stack = Stack()
     path_stack.push([start_node])

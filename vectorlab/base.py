@@ -73,9 +73,9 @@ class KVNode(SLMixin):
 
     Attributes
     ----------
-    key_ : object
+    _key : object
         A Python object represents the entity.
-    value_ : int, float, object
+    _value : int, float, object
         The value to be compared.
     """
 
@@ -107,6 +107,7 @@ class KVNode(SLMixin):
         return hash(self.__repr__())
 
     def __repr__(self):
+
         print_str = 'Key: {}, Value: {}'.format(
             self._key, self._value
         )

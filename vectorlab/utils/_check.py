@@ -218,7 +218,7 @@ def check_valid_int(x,
     if isinstance(x, float) and int(x) == x:
         x = int(x)
 
-    if isinstance(x, int):
+    if isinstance(x, int) or isinstance(x, np.int_):
         lower_check = (lower <= x if lower_inclusive else lower < x)
         upper_check = (x <= upper if upper_inclusive else x < upper)
 
@@ -288,7 +288,7 @@ def check_valid_float(x,
     if isinstance(x, int):
         x = float(x)
 
-    if isinstance(x, float):
+    if isinstance(x, float) or isinstance(x, np.float_):
         lower_check = (lower <= x if lower_inclusive else lower < x)
         upper_check = (x <= upper if upper_inclusive else x < upper)
 

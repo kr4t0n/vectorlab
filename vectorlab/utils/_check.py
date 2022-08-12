@@ -212,8 +212,8 @@ def check_valid_int(x,
         ValueError is raised.
     """
 
-    lower = lower if lower is not None else np.float('-inf')
-    upper = upper if upper is not None else np.float('inf')
+    lower = lower if lower is not None else -np.Inf
+    upper = upper if upper is not None else np.Inf
 
     if isinstance(x, float) and int(x) == x:
         x = int(x)
@@ -282,8 +282,8 @@ def check_valid_float(x,
         ValueError is raised.
     """
 
-    lower = lower if lower is not None else np.float('-inf')
-    upper = upper if upper is not None else np.float('inf')
+    lower = lower if lower is not None else -np.Inf
+    upper = upper if upper is not None else np.Inf
 
     if isinstance(x, int):
         x = float(x)

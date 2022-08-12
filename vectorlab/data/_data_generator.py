@@ -10,7 +10,7 @@ from ..utils._check import check_1d_array, check_valid_int
 def data_linear_generator(n_samples,
                           w, b=0,
                           noise=True, eps=1e-2):
-    """Generate linear data.
+    r"""Generate linear data.
 
     Generate X based on the length of w, weights. The shape of X
     would be (n_samples, len(w)). Generate y according to the

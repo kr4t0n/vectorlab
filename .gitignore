@@ -8,6 +8,7 @@ __pycache__
 
 # pytest generated files #
 ##########################
+.benchmark
 .pytest_cache
 
 # OS generated files #

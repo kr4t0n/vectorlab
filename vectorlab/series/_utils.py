@@ -4,7 +4,7 @@ Basic utility functions operated on series data.
 
 import numpy as np
 
-from ..utils._check import check_1d_array, check_valid_int
+from ..utils._check import check_nd_array, check_valid_int
 
 
 def estimate_next(series):
@@ -41,7 +41,7 @@ def estimate_next(series):
         a ValueError is raised.
     """
 
-    series = check_1d_array(series)
+    series = check_nd_array(series, n=1)
 
     if series.shape[0] <= 1:
         raise ValueError(
@@ -85,7 +85,7 @@ def extend_series(series,
         a ValueError is raised.
     """
 
-    series = check_1d_array(series)
+    series = check_nd_array(series, n=1)
 
     extend_num = check_valid_int(
         extend_num,

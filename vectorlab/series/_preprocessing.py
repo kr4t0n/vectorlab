@@ -8,7 +8,7 @@ import numpy as np
 from functools import reduce
 from scipy import interpolate
 
-from ..utils._check import check_1d_array, check_valid_int, check_valid_option
+from ..utils._check import check_nd_array, check_valid_int, check_valid_option
 
 EPS = 1e-8
 
@@ -34,7 +34,7 @@ def auto_ts_step(ts, eps=4):
         The time step calculated by GCD.
     """
 
-    ts = check_1d_array(ts)
+    ts = check_nd_array(ts, n=1)
     eps = check_valid_int(
         eps,
         lower=0, variable_name='eps'
@@ -85,7 +85,8 @@ def format_ts(ts, series, step, start_ts=None):
         a ValueError is raised.
     """
 
-    ts = check_1d_array(ts)
+    ts = check_nd_array(ts, n=1)
+    series = check_nd_array(series, n=2)
     step = check_valid_int(
         step,
         lower=1, variable_name='step'
@@ -161,7 +162,8 @@ def aggregate_ts(ts, series, step, agg_type, start_ts=None):
 
     _agg_type_options = ['sum', 'mean']
 
-    ts = check_1d_array(ts)
+    ts = check_nd_array(ts, n=1)
+    series = check_nd_array(series, n=2)
     step = check_valid_int(
         step,
         lower=1, variable_name='step'
@@ -309,7 +311,8 @@ def series_interpolate(ts, series, kind='linear'):
         'slinear', 'quadratic', 'cubic', 'previous', 'next'
     ]
 
-    ts = check_1d_array(ts)
+    ts = check_nd_array(ts, n=1)
+    series = check_nd_array(series, n=2)
     kind = check_valid_option(
         kind,
         options=_interpolate_options, variable_name='interpolate kind'

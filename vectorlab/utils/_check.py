@@ -56,30 +56,32 @@ def _check_tensor(arr):
     return arr
 
 
-def check_1d_array(X, dtype=None):
+def check_nd_array(X, n, dtype=None):
     r"""Set X appropriately and checks input
 
     Specifically, this function first ensures that X is an array,
-    then checks that it is 1d array while ensuring that its elements
+    then checks that it is an nd array while ensuring that its elements
     are floats (or dtype if provided).
 
     Parameters
     ----------
-    X : {array-like, sparse matrix}, shape (n_samples_1)
-        The first input data.
+    X : {array-like, sparse matrix}, shape (n_samples)
+        The input data.
+    n : int
+        The number of dimensions.
     dtype : str, type, list of types, optional
         Data type required for X. If None, the dtype will be an
         appropriate float type selected by _return_float_dtype.
 
     Returns
     -------
-    safe_X : {array-like, sparse matrix}, shape (n_samples_1)
+    safe_X : {array-like, sparse matrix}, shape (n_samples)
         An array equal to X, guaranteed to be a numpy array.
 
     Raises
     ------
     ValueError
-        When X is not a 1d array, a ValueError is raised.
+        When X is not a nd array, a ValueError is raised.
     """
 
     X, _, dtype_float = _return_float_dtype(X, None)
@@ -89,11 +91,11 @@ def check_1d_array(X, dtype=None):
 
     X = X.astype(dtype=dtype)
 
-    if X.ndim != 1:
+    if X.ndim != n:
         raise ValueError(
             'Invalid dimension for X: '
-            'X.shape == {}, it should be a 1d array'.format(
-                X.shape
+            'X.shape == {}, it should be a {}d array'.format(
+                X.shape, n
             )
         )
 

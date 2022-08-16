@@ -4,7 +4,7 @@ Stochastic data generators.
 
 import numpy as np
 
-from ..utils._check import check_1d_array, check_valid_int
+from ..utils._check import check_nd_array, check_valid_int
 
 
 def data_linear_generator(n_samples,
@@ -43,7 +43,7 @@ def data_linear_generator(n_samples,
         lower=1,
         variable_name='n_samples'
     )
-    w, _ = check_1d_array(w, None)
+    w = check_nd_array(w, n=1)
 
     n_dims = w.shape[0]
 

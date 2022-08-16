@@ -7,7 +7,7 @@ import numpy as np
 from ..utils._check import check_1d_array
 
 
-def estimate_next(X):
+def estimate_next(series):
     r"""This is a naive method to estimate the next value in
     a series data.
 
@@ -25,7 +25,7 @@ def estimate_next(X):
 
     Parameters
     ----------
-    X : array_like, shape (n_samples)
+    series : array_like, shape (n_samples)
         The input array.
 
     Returns
@@ -41,22 +41,22 @@ def estimate_next(X):
         a ValueError is raised.
     """
 
-    X = check_1d_array(X)
+    series = check_1d_array(series)
 
-    if X.shape[0] <= 1:
+    if series.shape[0] <= 1:
         raise ValueError(
             'Length of series should be larger than 2 to estimate'
         )
 
     slopes = [
-        (X[-1] - v) / (X.shape[0] - 1 - i)
-        for i, v in enumerate(X[:-1])
+        (series[-1] - v) / (series.shape[0] - 1 - i)
+        for i, v in enumerate(series[:-1])
     ]
 
-    return X[1] + sum(slopes)
+    return series[1] + sum(slopes)
 
 
-def extend_series(X,
+def extend_series(series,
                   extend_num=0, look_ahead=5):
     r"""This is a naive method to extend a series data. In this function,
     it will extend next value using estimate_next naive method in an iterative
@@ -64,7 +64,7 @@ def extend_series(X,
 
     Parameters
     ----------
-    X : array_like, shape (n_samples)
+    series : array_like, shape (n_samples)
         The input array.
     extend_num : int, optional
         The number of extended points.
@@ -73,7 +73,7 @@ def extend_series(X,
 
     Returns
     -------
-    X : array_like, shape (n_samples + extend_num)
+    series : array_like, shape (n_samples + extend_num)
         The extended array.
 
     Raises
@@ -97,12 +97,12 @@ def extend_series(X,
             'to two. Current look_head is {}.'.format(look_ahead)
         )
 
-    X = check_1d_array(X)
+    series = check_1d_array(series)
 
-    X_new = X.copy()
+    series_new = series.copy()
 
     for i in range(extend_num):
-        extension = [estimate_next(X_new[-look_ahead:])]
-        X_new = np.concatenate((X_new, extension))
+        extension = [estimate_next(series_new[-look_ahead:])]
+        series_new = np.concatenate((series_new, extension))
 
-    return X_new
+    return series_new

@@ -4,7 +4,7 @@ Basic utility functions operated on series data.
 
 import numpy as np
 
-from ..utils._check import check_1d_array
+from ..utils._check import check_1d_array, check_valid_int
 
 
 def estimate_next(series):
@@ -85,19 +85,16 @@ def extend_series(series,
         a ValueError is raised.
     """
 
-    if extend_num < 0 or not isinstance(extend_num, int):
-        raise ValueError(
-            'Length of extend_num should be an integer larger or equal'
-            'to zero. Current extend_num is {}.'.format(extend_num)
-        )
-
-    if look_ahead < 2 or not isinstance(look_ahead, int):
-        raise ValueError(
-            'Length of look_head should be an integer larger or equal'
-            'to two. Current look_head is {}.'.format(look_ahead)
-        )
-
     series = check_1d_array(series)
+
+    extend_num = check_valid_int(
+        extend_num,
+        lower=0, variable_name='extend_num'
+    )
+    look_ahead = check_valid_int(
+        look_ahead,
+        lower=2, variable_name='look_ahead'
+    )
 
     series_new = series.copy()
 

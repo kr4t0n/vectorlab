@@ -56,59 +56,50 @@ def _check_tensor(arr):
     return arr
 
 
-def check_1d_array(X, Y, dtype=None):
-    r"""Set X and Y appropriately and checks inputs
+def check_nd_array(X, n, dtype=None):
+    r"""Set X appropriately and checks input
 
-    If Y is None, it is set as a pointer to X (i.e. not a copy)
-    If Y is given, this does not happen.
-    All 1d distance metrics should use this function first to assert
-    that given parameters are correct and safe to use.
-
-    Specifically, this function first ensures that both X and Y are arrays,
-    then checks that they are 1d array while ensuring that their elements
+    Specifically, this function first ensures that X is an array,
+    then checks that it is an nd array while ensuring that its elements
     are floats (or dtype if provided).
 
     Parameters
     ----------
-    X : {array-like, sparse matrix}, shape (n_samples_1)
-        The first input data.
-    Y : {array-like, sparse matrix}, shape (n_samples_2)
-        The second inputs data.
+    X : {array-like, sparse matrix}, shape (n_samples)
+        The input data.
+    n : int
+        The number of dimensions.
     dtype : str, type, list of types, optional
-        Data type required for X and Y. If None, the dtype will be an
+        Data type required for X. If None, the dtype will be an
         appropriate float type selected by _return_float_dtype.
 
     Returns
     -------
-    safe_X : {array-like, sparse matrix}, shape (n_samples_1)
+    safe_X : {array-like, sparse matrix}, shape (n_samples)
         An array equal to X, guaranteed to be a numpy array.
-    safe_Y : {array-like, sparse matrix}, shape (n_samples_2)
-        An array equal to Y if Y was not None,
-        guaranteed to be a numpy array. If Y was None,
-        safe_Y will be a pointer to X.
 
     Raises
     ------
     ValueError
-        When X and Y have different dimension,
-        a ValueError is raised.
+        When X is not a nd array, a ValueError is raised.
     """
 
-    X, Y, dtype_float = _return_float_dtype(X, Y)
+    X, _, dtype_float = _return_float_dtype(X, None)
 
     if dtype is None:
         dtype = dtype_float
 
-    if Y is X or Y is None:
-        Y = X = X.astype(dtype=dtype)
+    X = X.astype(dtype=dtype)
 
-    if X.ndim != 1 or Y.ndim != 1:
-        raise ValueError('Invalid dimension for X and Y: '
-                         'X.shape == {} while Y.shape == {}, '
-                         'they should be 1d array'.format(
-                             X.shape, Y.shape))
+    if X.ndim != n:
+        raise ValueError(
+            'Invalid dimension for X: '
+            'X.shape == {}, it should be a {}d array'.format(
+                X.shape, n
+            )
+        )
 
-    return X, Y
+    return X
 
 
 def check_pairwise_1d_array(X, Y, dtype=None):

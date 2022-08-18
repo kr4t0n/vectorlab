@@ -93,10 +93,8 @@ def check_nd_array(X, n, dtype=None):
 
     if X.ndim != n:
         raise ValueError(
-            'Invalid dimension for X: '
-            'X.shape == {}, it should be a {}d array'.format(
-                X.shape, n
-            )
+            f'Invalid dimension for X: '
+            f'X.shape == {X.shape}, it should be a {n}d array'
         )
 
     return X
@@ -149,14 +147,16 @@ def check_pairwise_1d_array(X, Y, dtype=None):
         Y = X = X.astype(dtype=dtype)
 
     if X.ndim != 1 or Y.ndim != 1:
-        raise ValueError('Invalid dimension for X and Y: '
-                         'X.shape == {} while Y.shape == {}, '
-                         'they should be 1d array'.format(
-                             X.shape, Y.shape))
+        raise ValueError(
+            f'Invalid dimension for X and Y: '
+            f'X.shape == {X.shape} while Y.shape == {Y.shape}, '
+            f'they should be 1d array'.format
+        )
     elif X.shape[0] != Y.shape[0]:
-        raise ValueError('Incompatible length for X and Y '
-                         'X.shape[0] == {} while Y.shape[0] == {}'.format(
-                             X.shape[0], Y.shape[0]))
+        raise ValueError(
+            f'Incompatible length for X and Y '
+            f'X.shape[0] == {X.shape[0]} while Y.shape[0] == {Y.shape[0]}'
+        )
 
     return X, Y
 
@@ -216,18 +216,19 @@ def check_valid_int(x,
         if lower_check and upper_check:
             return x
 
+    if variable_name:
+        variable_name += ' '
+    else:
+        variable_name = ''
+
+    lower_clause = '[' if lower_inclusive else '('
+    upper_clause = ']' if upper_inclusive else ')'
+
     raise ValueError(
-        'Variable {}does not match the constraint. '
-        'Target type is integer, your type is {}. '
-        'The value should between {}{}, {}{}, your value is {}.'.format(
-            '{} '.format(variable_name) if variable_name else '',
-            type(x),
-            '[' if lower_inclusive else '(',
-            lower,
-            upper,
-            ']' if upper_inclusive else ')',
-            x
-        )
+        f'Variable {variable_name}does not match the constraint. '
+        f'Target type is integer, your type is {type(x)}. '
+        f'The value should between {lower_clause}{lower}, '
+        f'{upper}{upper_clause}, your value is {x}.'
     )
 
 
@@ -286,18 +287,19 @@ def check_valid_float(x,
         if lower_check and upper_check:
             return x
 
+    if variable_name:
+        variable_name += ' '
+    else:
+        variable_name = ''
+
+    lower_clause = '[' if lower_inclusive else '('
+    upper_clause = ']' if upper_inclusive else ')'
+
     raise ValueError(
-        'Variable {}does not match the constraint. '
-        'Target type is integer, your type is {}. '
-        'The value should between {}{}, {}{}, your value is {}.'.format(
-            '{} '.format(variable_name) if variable_name else '',
-            type(x),
-            '[' if lower_inclusive else '(',
-            lower,
-            upper,
-            ']' if upper_inclusive else ')',
-            x
-        )
+        f'Variable {variable_name}does not match the constraint. '
+        f'Target type is float, your type is {type(x)}. '
+        f'The value should between {lower_clause}{lower}, '
+        f'{upper}{upper_clause}, your value is {x}.'
     )
 
 
@@ -333,11 +335,12 @@ def check_valid_option(x, options,
     if x in options:
         return x
 
+    if variable_name:
+        variable_name += ' '
+    else:
+        variable_name = ''
+
     raise ValueError(
-        'Variable {}does not match the constraint. '
-        'Potential options are {}, your option is {}.'.format(
-            '{} '.format(variable_name) if variable_name else '',
-            options,
-            x
-        )
+        f'Variable {variable_name}does not match the constraint. '
+        f'Potential options are {options}, your option is {x}.'
     )

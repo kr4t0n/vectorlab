@@ -1,3 +1,7 @@
+# Editor temporary/working/backup files #
+#########################################
+.vscode
+
 # dist directory #
 ##################
 dist

@@ -73,9 +73,9 @@ class KVNode(SLMixin):
 
     Attributes
     ----------
-    _key : object
+    key_ : object
         A Python object represents the entity.
-    _value : int, float, object
+    value_ : int, float, object
         The value to be compared.
     """
 
@@ -83,25 +83,25 @@ class KVNode(SLMixin):
 
         super(KVNode, self).__init__()
 
-        self._key = key
-        self._value = value
+        self.key_ = key
+        self.value_ = value
 
         return
 
     def __lt__(self, other):
-        return self._value < other._value
+        return self.value_ < other.value_
 
     def __le__(self, other):
-        return self._value <= other._value
+        return self.value_ <= other.value_
 
     def __gt__(self, other):
-        return self._value > other._value
+        return self.value_ > other.value_
 
     def __ge__(self, other):
-        return self._value >= other._value
+        return self.value_ >= other.value_
 
     def __eq__(self, other):
-        return (self._key == other._key) & (self._value == other._value)
+        return (self.key_ == other.key_) & (self.value_ == other.value_)
 
     def __hash__(self):
         return hash(self.__repr__())
@@ -109,7 +109,7 @@ class KVNode(SLMixin):
     def __repr__(self):
 
         print_str = 'Key: {}, Value: {}'.format(
-            self._key, self._value
+            self.key_, self.value_
         )
 
         return print_str
@@ -131,9 +131,9 @@ class Stack(SLMixin):
 
     Attributes
     ---------
-    _stack : list
+    stack_ : list
         The stack to store elements.
-    _dtype : type
+    dtype_ : type
         The element type desired to store in the stack.
     """
 
@@ -141,8 +141,8 @@ class Stack(SLMixin):
 
         super(Stack, self).__init__()
 
-        self._stack = []
-        self._dtype = dtype
+        self.stack_ = []
+        self.dtype_ = dtype
 
         return
 
@@ -161,17 +161,17 @@ class Stack(SLMixin):
             type is not equal to it, a ValueError is raised.
         """
 
-        if self._dtype is not None:
-            if not isinstance(element, self._dtype):
+        if self.dtype_ is not None:
+            if not isinstance(element, self.dtype_):
                 raise ValueError(
                     'New element type is not allowed. '
                     'New element type is {}, allowed type is {}'.format(
                         type(element),
-                        self._dtype
+                        self.dtype_
                     )
                 )
 
-        self._stack.append(element)
+        self.stack_.append(element)
 
         return
 
@@ -190,7 +190,7 @@ class Stack(SLMixin):
         """
 
         if len(self) > 0:
-            return self._stack.pop(-1)
+            return self.stack_.pop(-1)
         else:
             raise ValueError('Pop from an empty stack.')
 
@@ -205,14 +205,14 @@ class Stack(SLMixin):
         """
 
         if len(self) > 0:
-            return self._stack[-1]
+            return self.stack_[-1]
         else:
             warnings.warn('The stack is empty, return a None value.')
             return None
 
     def __len__(self):
 
-        return len(self._stack)
+        return len(self.stack_)
 
 
 class Queue(SLMixin):
@@ -231,9 +231,9 @@ class Queue(SLMixin):
 
     Attributes
     ----------
-    _queue : list
+    queue_ : list
         The queue to store elements.
-    _dtype : type
+    dtype_ : type
         The element type desired to store in the queue.
     """
 
@@ -241,8 +241,8 @@ class Queue(SLMixin):
 
         super(Queue, self).__init__()
 
-        self._queue = []
-        self._dtype = dtype
+        self.queue_ = []
+        self.dtype_ = dtype
 
         return
 
@@ -261,17 +261,17 @@ class Queue(SLMixin):
             type is not equal to it, a ValueError is raised.
         """
 
-        if self._dtype is not None:
-            if not isinstance(element, self._dtype):
+        if self.dtype_ is not None:
+            if not isinstance(element, self.dtype_):
                 raise ValueError(
                     'New element type is not allowed. '
                     'New element type is {}, allowed type is {}'.format(
                         type(element),
-                        self._dtype
+                        self.dtype_
                     )
                 )
 
-        self._queue.append(element)
+        self.queue_.append(element)
 
         return
 
@@ -290,7 +290,7 @@ class Queue(SLMixin):
         """
 
         if len(self) > 0:
-            return self._queue.pop(0)
+            return self.queue_.pop(0)
         else:
             raise ValueError('Pop from an empty queue.')
 
@@ -305,14 +305,14 @@ class Queue(SLMixin):
         """
 
         if len(self) > 0:
-            return self._queue[0]
+            return self.queue_[0]
         else:
             warnings.warn('The queue is empty, return a None value.')
             return None
 
     def __len__(self):
 
-        return len(self._queue)
+        return len(self.queue_)
 
 
 class Accumulator(SLMixin):
@@ -334,11 +334,11 @@ class Accumulator(SLMixin):
 
     Attributes
     ----------
-    _n_attrs : int
+    n_attrs_ : int
         The number of attributes maintained inside the accumulator.
-    _attrs : dict
+    attrs_ : dict
         The name of attributes to fetch the data.
-    _attrs_stats : np.ndarray
+    attrs_stats_ : np.ndarray
         The accumulated statistical number of attributes.
 
     Raises
@@ -361,10 +361,10 @@ class Accumulator(SLMixin):
                 )
             )
 
-        self._n_attrs = n_attrs
+        self.n_attrs_ = n_attrs
 
-        self._attrs = {attr: idx for idx, attr in enumerate(attrs)}
-        self._attrs_stats = np.zeros(self._n_attrs, dtype=np.float_)
+        self.attrs_ = {attr: idx for idx, attr in enumerate(attrs)}
+        self.attrs_stats_ = np.zeros(self.n_attrs_, dtype=np.float_)
 
         return
 
@@ -382,7 +382,7 @@ class Accumulator(SLMixin):
             The stored data.
         """
 
-        return self._attrs_stats[self._attrs[attr]]
+        return self.attrs_stats_[self.attrs_[attr]]
 
     def add(self, attrs_stats):
         r"""Accumulate the stored number with provided attribute new
@@ -413,26 +413,26 @@ class Accumulator(SLMixin):
 
             attrs_stats = np.array(attrs_stats)
 
-            if self._attrs_stats.shape != attrs_stats.shape:
+            if self.attrs_stats_.shape != attrs_stats.shape:
                 raise ValueError(
                     'The number of adding attributes statistics is different '
                     'from the number of elements initialized. '
                     'The accumulator contains {} elements '
                     'but provided with {}.'.format(
-                        self._n_attrs,
+                        self.n_attrs_,
                         attrs_stats.shape[0]
                     )
                 )
 
-            self._attrs_stats += attrs_stats
+            self.attrs_stats_ += attrs_stats
 
         if isinstance(attrs_stats, dict):
 
-            attrs_stats_ = np.zeros(self._n_attrs, dtype=np.float_)
+            attrs_stats_ = np.zeros(self.n_attrs_, dtype=np.float_)
 
             for attr in attrs_stats:
-                attrs_stats_[self._attrs[attr]] = attrs_stats[attr]
+                attrs_stats_[self.attrs_[attr]] = attrs_stats[attr]
 
-            self._attrs_stats += attrs_stats_
+            self.attrs_stats_ += attrs_stats_
 
         return

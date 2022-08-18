@@ -27,9 +27,9 @@ class MultiDataset(SLMixin, Dataset):
 
     Attributes
     ----------
-    _len : int
+    len_ : int
         The number of data stored in MultiDataset.
-    _tensors : tuple
+    tensors_ : tuple
         The multiple tensors stored in MultiDataset.
     """
 
@@ -43,8 +43,8 @@ class MultiDataset(SLMixin, Dataset):
             tensors[0].size(0) == tensor.size(0) for tensor in tensors
         ), 'Size mismatch between tensors.'
 
-        self._len = tensors[0].size(0)
-        self._tensors = tensors
+        self.len_ = tensors[0].size(0)
+        self.tensors_ = tensors
 
         return
 
@@ -57,7 +57,7 @@ class MultiDataset(SLMixin, Dataset):
             The number of data stored in MultiDataset.
         """
 
-        return self._len
+        return self.len_
 
     def __getitem__(self, idx):
         r"""Fetch the data using idx parameter.
@@ -77,7 +77,7 @@ class MultiDataset(SLMixin, Dataset):
             The list of data from multiple data sources fetched by slice.
         """
 
-        return tuple(tensor[idx] for tensor in self._tensors)
+        return tuple(tensor[idx] for tensor in self.tensors_)
 
 
 class ImageDataset(SLMixin, Dataset):
@@ -99,13 +99,13 @@ class ImageDataset(SLMixin, Dataset):
 
     Attributes
     ----------
-    _root : str
+    root_ : str
         The root directory for images.
-    _annotations : pd.DataFrame
+    annotations_ : pd.DataFrame
         The DataFrame stored the images related information.
-    _transform : torch.nn.Module
+    transform_ : torch.nn.Module
         A series of transform(s) applied over the given image(s).
-    _len : int
+    len_ : int
         The number of data stored in ImageDataset.
     """
 
@@ -113,11 +113,11 @@ class ImageDataset(SLMixin, Dataset):
 
         super(ImageDataset, self).__init__()
 
-        self._root = root
-        self._annotations = pd.read_csv(annotation)
-        self._transform = transform
+        self.root_ = root
+        self.annotations_ = pd.read_csv(annotation)
+        self.transform_ = transform
 
-        self._len = len(self._annotations)
+        self.len_ = len(self.annotations_)
 
         return
 
@@ -130,7 +130,7 @@ class ImageDataset(SLMixin, Dataset):
             The number of data stored in ImageDataset.
         """
 
-        return self._len
+        return self.len_
 
     def __getitem__(self, idx):
         r"""Fetch the data using idx parameter.
@@ -153,18 +153,18 @@ class ImageDataset(SLMixin, Dataset):
         """
 
         img_path = os.path.join(
-            self._root,
-            self._annotations.iloc[idx, 0]
+            self.root_,
+            self.annotations_.iloc[idx, 0]
         )
 
         img = Image.open(img_path)
         img = img.convert('RGB')
 
-        if self._transform:
-            img = self._transform(img)
+        if self.transform_:
+            img = self.transform_(img)
 
         label = _check_tensor(
-            int(self._annotations.iloc[idx, 1])
+            int(self.annotations_.iloc[idx, 1])
         )
 
         return img, label
@@ -187,11 +187,11 @@ class SequenceDataset(SLMixin, Dataset):
 
     Attributes
     ----------
-    _input_seq : list or tuple of tensors
+    input_seq_ : list or tuple of tensors
         The input sequences.
-    _output_seq : list or tuple of tensors
+    output_seq_ : list or tuple of tensors
         The output sequences.
-    _len : int
+    len_ : int
         The number of sequences stored in SequenceDataset.
     """
 
@@ -201,10 +201,10 @@ class SequenceDataset(SLMixin, Dataset):
 
         assert len(input_seq) == len(output_seq)
 
-        self._input_seq = tuple(_check_tensor(_) for _ in input_seq)
-        self._output_seq = tuple(_check_tensor(_) for _ in output_seq)
+        self.input_seq_ = tuple(_check_tensor(_) for _ in input_seq)
+        self.output_seq_ = tuple(_check_tensor(_) for _ in output_seq)
 
-        self._len = len(self._input_seq)
+        self.len_ = len(self.input_seq_)
 
         return
 
@@ -217,7 +217,7 @@ class SequenceDataset(SLMixin, Dataset):
             The number of data stored in SequenceDataset.
         """
 
-        return self._len
+        return self.len_
 
     def __getitem__(self, idx):
         r"""Fetch the data using idx parameter.
@@ -236,4 +236,4 @@ class SequenceDataset(SLMixin, Dataset):
             The tuple of data contained the input and output sequences.
         """
 
-        return self._input_seq[idx], self._output_seq[idx]
+        return self.input_seq_[idx], self.output_seq_[idx]

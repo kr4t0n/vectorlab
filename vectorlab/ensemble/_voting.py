@@ -27,7 +27,7 @@ def _soft_voting(results, weights=None):
 
     Returns
     -------
-    voting : np.ndarray
+    _voting : np.ndarray
         The soft voting result.
     """
 
@@ -39,9 +39,9 @@ def _soft_voting(results, weights=None):
     results = np.stack(results)
     soft_results = np.average(results, axis=0, weights=weights)
 
-    voting = np.argmax(soft_results, axis=1)
+    _voting = np.argmax(soft_results, axis=1)
 
-    return voting
+    return _voting
 
 
 def _hard_voting(results, weights=None):
@@ -63,7 +63,7 @@ def _hard_voting(results, weights=None):
 
     Returns
     -------
-    voting : np.ndarray
+    _voting : np.ndarray
         The hard voting result.
     """
 
@@ -74,13 +74,13 @@ def _hard_voting(results, weights=None):
 
     results = np.stack(results)
 
-    voting = np.apply_along_axis(
+    _voting = np.apply_along_axis(
         lambda x: np.argmax(np.bincount(x, weights=weights)),
         axis=0,
         arr=results
     )
 
-    return voting
+    return _voting
 
 
 def voting(results, weights=None, method='soft'):
@@ -107,7 +107,7 @@ def voting(results, weights=None, method='soft'):
 
     Returns
     -------
-    voting : np.ndarray
+    _voting : np.ndarray
         The voting result.
     """
 
@@ -117,9 +117,9 @@ def voting(results, weights=None, method='soft'):
     )
 
     if method == 'soft':
-        voting = _soft_voting(results, weights=weights)
+        _voting = _soft_voting(results, weights=weights)
     elif method == 'hard':
         results = tuple(np.argmax(result, axis=1) for result in results)
-        voting = _hard_voting(results, weights=weights)
+        _voting = _hard_voting(results, weights=weights)
 
-    return voting
+    return _voting

@@ -197,8 +197,8 @@ def is_connectivity(adj_mat, n_nodes=None, method='dfs'):
                          return_visited=True)
     else:
         raise ValueError(
-            'Currently does not support to use method {} '
-            'to decide connectivity.'.format(method)
+            f'Currently does not support to use method {method} '
+            f'to decide connectivity.'
         )
 
     if len(visited) == n_nodes:
@@ -313,8 +313,8 @@ def find_subgraphs(adj_mat, n_nodes=None, method='dfs'):
                              return_visited=True)
         else:
             raise ValueError(
-                'Currently does not support to use method {} '
-                'to decide connectivity.'.format(method)
+                f'Currently does not support to use method {method} '
+                f'to decide connectivity.'
             )
 
         subgraphs.append(visited)

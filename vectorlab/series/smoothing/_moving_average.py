@@ -407,7 +407,7 @@ class ExpWeightedMovingAverage(TransformerMixin):
             2,
             1
         )
-        smoothed_X = alpha_add.accumulate(X, dtype=np.object).astype(np.float_)
+        smoothed_X = alpha_add.accumulate(X, dtype=np.object_).astype(np.float_)
 
         return smoothed_X
 

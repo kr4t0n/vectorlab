@@ -1,0 +1,23 @@
+# VectorLab Requirements
+
+# vision module #
+#################
+pillow
+
+# computation #
+###############
+numpy
+scipy
+pandas
+
+# statistic #
+#############
+statsmodels
+
+# machine learning #
+####################
+scikit-learn
+
+# PyTorch #
+###########
+torch

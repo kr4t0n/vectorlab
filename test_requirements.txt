@@ -1,0 +1,6 @@
+# VectorLab Test Requirements
+
+# pytest #
+##########
+pytest
+pytest-benchmark

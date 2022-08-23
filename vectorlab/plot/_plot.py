@@ -109,7 +109,7 @@ def plot2d(x, y, categories,
     if ax_pos is not None:
         ax = plt.subplot(*ax_pos)
     else:
-        ax = plt.gca()
+        ax = plt.subplot(*(1, 1, 1))
 
     if ax_labels is not None:
         ax.set_xlabel(ax_labels[0], fontdict={'size': 10})

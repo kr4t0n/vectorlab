@@ -138,7 +138,8 @@ def plot2d(x, y, categories,
         ax.text(
             s='\n' + caption,
             horizontalalignment='left',
-            x=0, y=-0.128,
+            x=0, y=-0.075,
+            transform=ax.transAxes,
             fontdict={'size': 8}
         )
 
@@ -270,7 +271,8 @@ def plot3d(x, y, z, categories,
         ax.text(
             s='\n' + caption,
             horizontalalignment='left',
-            x=0, y=-0.128, z=0,
+            x=0, y=-0.075, z=0,
+            transform=ax.transAxes,
             fontdict={'size': 8}
         )
 
@@ -405,7 +407,8 @@ def plotnx(adj_mat, categories,
         ax.text(
             s='\n' + caption,
             horizontalalignment='left',
-            x=0, y=0,
+            x=0, y=-0.075,
+            transform=ax.transAxes,
             fontdict={'size': 8}
         )
 

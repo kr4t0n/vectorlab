@@ -1,15 +1,11 @@
 # VectorLab Requirements
 
-# plot module #
-###############
-matplotlib
-seaborn
-
 # computation #
 ###############
 numpy
 scipy
 pandas
+networkx
 
 # statistic #
 #############
@@ -18,6 +14,11 @@ statsmodels
 # machine learning #
 ####################
 scikit-learn
+
+# plot module #
+###############
+matplotlib
+seaborn
 
 # vision module #
 #################

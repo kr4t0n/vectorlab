@@ -415,7 +415,7 @@ def plotnx(adj_mat, categories,
     if isinstance(adj_mat, np.ndarray):
         G = nx.from_numpy_matrix(adj_mat)
     elif sparse.isspmatrix(adj_mat):
-        G = nx.from_scipy_sparse_matrix(adj_mat)
+        G = nx.from_scipy_sparse_array(adj_mat)
     else:
         if G is None:
             raise ValueError(

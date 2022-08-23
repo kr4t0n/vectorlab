@@ -7,6 +7,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 from ._palettes import load_palette
+from ..utils._check import _check_ndarray
 
 
 def init_plot(width=10, height=8, dpi=100,
@@ -106,12 +107,23 @@ def plot2d(x, y, categories,
         The axes of plotting.
     """
 
+    x = _check_ndarray(x)
+    y = _check_ndarray(y)
+
     if ax_pos is not None:
         ax = plt.subplot(*ax_pos)
     else:
         ax = plt.subplot(*(1, 1, 1))
 
     if ax_labels is not None:
+
+        if len(ax_labels) != 2:
+            raise ValueError(
+                f'Invalid ax_labels, it needs two elements inside '
+                f'for x and y axis. Current ax_labels have {len(ax_labels)} '
+                f'elements.'
+            )
+
         ax.set_xlabel(ax_labels[0], fontdict={'size': 10})
         ax.set_ylabel(ax_labels[1], fontdict={'size': 10})
 
@@ -224,12 +236,24 @@ def plot3d(x, y, z, categories,
         The axes of plotting.
     """
 
+    x = _check_ndarray(x)
+    y = _check_ndarray(y)
+    z = _check_ndarray(z)
+
     if ax_pos is not None:
         ax = plt.subplot(*ax_pos, projection='3d')
     else:
         ax = plt.subplot(*(1, 1, 1), projection='3d')
 
     if ax_labels is not None:
+
+        if len(ax_labels) != 3:
+            raise ValueError(
+                f'Invalid ax_labels, it needs three elements inside '
+                f'for x and y axis. Current ax_labels have {len(ax_labels)} '
+                f'elements.'
+            )
+
         ax.set_xlabel(ax_labels[0], fontdict={'size': 10})
         ax.set_ylabel(ax_labels[1], fontdict={'size': 10})
         ax.set_zlabel(ax_labels[2], fontdict={'size': 10})

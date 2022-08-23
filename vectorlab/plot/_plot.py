@@ -432,12 +432,10 @@ def plotnx(adj_mat, categories,
     if pos is None:
         pos = nx.spring_layout(G, seed=42)
 
+    if not isinstance(markers, dict):
+        markers = {cat: markers for cat in cats}
     if not isinstance(marker_sizes, dict):
         marker_sizes = {cat: marker_sizes for cat in cats}
-
-    node_size = np.empty(len(G), dtype=np.int_)
-    for cat in cats:
-        node_size[categories == cat] = marker_sizes[cat]
 
     palette = load_palette(palette)
     if np.issubdtype(cats.dtype, np.integer):
@@ -455,13 +453,18 @@ def plotnx(adj_mat, categories,
     for cat in cats:
         node_color[categories == cat] = colors[cat]
 
-    nx.draw_networkx(
-        G,
-        pos=pos, with_labels=with_node_labels,
-        arrows=arrows, arrowstyle=arrowstyle, arrowsize=arrowsize,
-        width=edge_width,
-        node_shape=markers, node_size=node_size, node_color=node_color
-    )
+    for cat in cats:
+        nx.draw_networkx(
+            G,
+            nodelist=np.array(G.nodes())[categories == cat],
+            pos=pos, with_labels=with_node_labels,
+            arrows=arrows, arrowstyle=arrowstyle, arrowsize=arrowsize,
+            width=edge_width,
+            node_shape=markers[cat],
+            node_size=marker_sizes[cat],
+            node_color=node_color[categories == cat],
+            label=cat
+        )
 
     if with_edge_labels:
         if edge_attr is None:

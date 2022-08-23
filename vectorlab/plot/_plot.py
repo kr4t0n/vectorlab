@@ -161,7 +161,7 @@ def plot2d(x, y, categories,
         )
 
     if legendary:
-        plt.legend(markerscale=4, title=legend_title)
+        ax.legend(markerscale=4, title=legend_title)
 
     return ax
 
@@ -258,24 +258,30 @@ def plot3d(x, y, z, categories,
 
     palette = load_palette(palette)
     if np.issubdtype(cats.dtype, np.integer):
-        colors = {cat: palette[cat % len(palette)]
-                  for cat in cats}
+        colors = {
+            cat: palette[cat % len(palette)]
+            for cat in cats
+        }
     else:
-        colors = {cat: palette[idx % len(palette)]
-                  for idx, cat in enumerate(cats)}
+        colors = {
+            cat: palette[idx % len(palette)]
+            for idx, cat in enumerate(cats)
+        }
 
     for cat in cats:
-        ax = plt.plot(x[categories == cat],
-                      y[categories == cat],
-                      z[categories == cat],
-                      zdir='z',
-                      marker=markers[cat],
-                      markersize=marker_sizes[cat],
-                      linestyle=lines[cat],
-                      color=colors[cat],
-                      label=cat)
+        ax.plot(
+            x[categories == cat],
+            y[categories == cat],
+            z[categories == cat],
+            zdir='z',
+            marker=markers[cat],
+            markersize=marker_sizes[cat],
+            linestyle=lines[cat],
+            color=colors[cat],
+            label=cat
+        )
 
     if legendary:
-        plt.legend(markerscale=4, title=legend_title)
+        ax.legend(markerscale=4, title=legend_title)
 
     return ax

@@ -109,6 +109,7 @@ def plot2d(x, y, categories,
 
     x = _check_ndarray(x)
     y = _check_ndarray(y)
+    categories = _check_ndarray(categories)
 
     if ax_pos is not None:
         ax = plt.subplot(*ax_pos)
@@ -239,6 +240,7 @@ def plot3d(x, y, z, categories,
     x = _check_ndarray(x)
     y = _check_ndarray(y)
     z = _check_ndarray(z)
+    categories = _check_ndarray(categories)
 
     if ax_pos is not None:
         ax = plt.subplot(*ax_pos, projection='3d')

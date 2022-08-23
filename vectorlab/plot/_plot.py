@@ -484,4 +484,10 @@ def plotnx(adj_mat, categories,
     if legendary:
         ax.legend(markerscale=4, title=legend_title)
 
+    # draw_networkx will remove ticks, here we add them back
+    ax.tick_params(
+        left=True, labelleft=True,
+        bottom=True, labelbottom=True
+    )
+
     return ax

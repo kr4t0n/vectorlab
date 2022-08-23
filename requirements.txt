@@ -1,8 +1,9 @@
 # VectorLab Requirements
 
-# vision module #
-#################
-pillow
+# plot module #
+###############
+matplotlib
+seaborn
 
 # computation #
 ###############
@@ -17,6 +18,10 @@ statsmodels
 # machine learning #
 ####################
 scikit-learn
+
+# vision module #
+#################
+pillow
 
 # PyTorch #
 ###########

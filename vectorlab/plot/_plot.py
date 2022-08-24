@@ -14,6 +14,8 @@ from ..utils._check import _check_ndarray
 
 
 def init_plot(width=10, height=8, dpi=100,
+              ax_labels=None,
+              title=None,
               despine=True, style='whitegrid'):
     r"""Initalize a plot, this will create a new figure.
 
@@ -25,6 +27,12 @@ def init_plot(width=10, height=8, dpi=100,
         The height of initialized figure.
     dpi : int, optional
         The dpi of initialized figure.
+    ax_labels : list, optional
+        The coordinate labels used in initialized axes.
+        When specified, it has to be a list contained of two names,
+        for `x` and `y` coordinate respectfully.
+    title : str, optional
+        The title of plot figure.
     despine : bool, optional
         Whether initialized figure is despined or not.
     style : str, optional
@@ -45,8 +53,23 @@ def init_plot(width=10, height=8, dpi=100,
 
     fig = plt.figure(figsize=(width, height), dpi=dpi)
 
-    n, e, w, s = (0.95, 0.9, 0.1, 0.15)
+    n, e, w, s = (0.85, 0.9, 0.1, 0.15)
     fig.subplots_adjust(bottom=s, right=e, left=w, top=n)
+
+    if ax_labels is not None:
+
+        if len(ax_labels) != 2:
+            raise ValueError(
+                f'Invalid ax_labels, it needs two elements inside '
+                f'for x and y axis. Current ax_labels have {len(ax_labels)} '
+                f'elements.'
+            )
+
+        fig.supxlabel(ax_labels[0], fontdict={'size': 10})
+        fig.supylabel(ax_labels[1], fontdict={'size': 10})
+
+    if title:
+        fig.suptitle(title)
 
     if despine:
         sns.despine(left=True, bottom=True)

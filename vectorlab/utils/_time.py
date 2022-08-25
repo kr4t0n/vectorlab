@@ -2,12 +2,21 @@
 Conversion between various formats of time, timestamp, datetime.
 """
 
+import os
+import re
 import pytz
 import warnings
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from ._check import check_valid_float, check_valid_option
+
+# Check if DATE is an environment variable
+if 'DATE' not in os.environ:
+    os.environ['DATE'] = datetime.now().strftime('%Y%m%d')
+
+# timestamp and date conversion utils #
+#-------------------------------------#
 
 
 def _auto_convert_ts(ts):
@@ -152,3 +161,77 @@ def dttz_to_ts(dttz):
     ts = datetime.timestamp(dttz)
 
     return ts
+
+
+# date parser utils #
+#-------------------#
+
+
+def _calculate_date_structure(date_structure):
+    r"""Calculate date representation according to the
+    date string format, `{DATE}` or `{DATE[+/-]int}`.
+
+    Parameters
+    ----------
+    date_structure : str
+        The date representation in string.
+
+    Returns
+    -------
+    date : str
+        The actual date of date string.
+    """
+
+    if date_structure == '[DATE]':
+        return os.environ['DATE']
+
+    # date_structure is {DATE[+/-]int}
+    date = datetime.strptime(os.environ['DATE'], '%Y%m%d')
+
+    op = date_structure[5]
+    delta = int(date_structure[6:-1])
+    date_delta = timedelta(days=delta)
+
+    if op == "+":
+        cal_date = date + date_delta
+    elif op == '-':
+        cal_date = date - date_delta
+
+    return cal_date.strftime('%Y%m%d')
+
+
+def get_real_date(fake_string):
+    r"""Use the real date to replace the date representation, `{DATE}`
+    and `{DATE[+/-]int}`, inside string.
+
+    `{DATE}` will translate into the date of today with format `%Y%m%d`,
+    while `{DATE[+/-]int}` will translate the date with specified
+    timedelta in unit of day.
+
+    Parameters
+    ----------
+    fake_string : str
+        The string contained special date representation
+
+    Returns
+    -------
+    real_string : str
+        Translated string with real date inside.
+    """
+
+    date_pattern = re.compile(
+        r'\[DATE(?:[+-][0-9]+)?\]'
+    )
+    date_structures = re.findall(
+        date_pattern,
+        fake_string
+    )
+
+    real_string = fake_string
+    for date_structure in date_structures:
+        real_string = real_string.replace(
+            date_structure,
+            _calculate_date_structure(date_structure)
+        )
+
+    return real_string

@@ -101,10 +101,8 @@ def format_ts(ts, series, step, start_ts=None):
 
     if start_ts > sorted_ts[-1]:
         raise ValueError(
-            'Start time stamp is {}, which is larger than any '
-            'time stamps.'.format(
-                start_ts
-            )
+            f'Start time stamp is {start_ts}, which is larger than any '
+            f'time stamps.'
         )
 
     new_ts = np.arange(
@@ -182,10 +180,8 @@ def aggregate_ts(ts, series, step, agg_type, start_ts=None):
 
     if start_ts > sorted_ts[-1]:
         raise ValueError(
-            'Start time stamp is {}, which is larger than any '
-            'time stamps.'.format(
-                start_ts
-            )
+            f'Start time stamp is {start_ts}, which is larger than any '
+            f'time stamps.'
         )
 
     new_ts = np.arange(

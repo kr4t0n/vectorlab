@@ -3,4 +3,5 @@
 # pytest #
 ##########
 pytest
+pytest-repeat
 pytest-benchmark

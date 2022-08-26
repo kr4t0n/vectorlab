@@ -586,7 +586,7 @@ class TSData(SLMixin):
         a subset of the original TSData.
 
         When the key parameter in __getitem__ is an integer, it will try to
-        return the `i-th` sample attributes inside TSData.
+        return the `i-th` attributes inside TSData.
 
         When the key parameter in __getitem__ is a string, it will try to
         treat the key as a attribute name and return the corresponding
@@ -606,7 +606,7 @@ class TSData(SLMixin):
         ------
         ValueError
             It the key parameter in __getitem__ is int, but it is larger
-            than the number of samples, a ValueError is raised.
+            than the number of attributes, a ValueError is raised.
 
             If the key parameter in __getitem__ is string but not appeared
             in the provided attributes, a ValueError is raised.
@@ -629,11 +629,10 @@ class TSData(SLMixin):
 
             key = check_valid_int(
                 key,
-                lower=0, upper=self.n_samples_ - 1,
-                variable_name='sample index'
+                lower=0, upper=self.n_attrs_ - 1,
+                variable_name='attribute index'
             )
-            attr = self.attrs_[:, key]
-            attr_data = dict(zip(self.attr_names_, attr))
+            attr_data = self.attrs_[key, :].ravel()
 
             return attr_data
         elif isinstance(key, str):

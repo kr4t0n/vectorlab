@@ -23,7 +23,6 @@ from ...series._preprocessing import (
     format_ts, aggregate_ts, series_interpolate,
     auto_ts_step
 )
-from vectorlab import plot
 
 
 class TSData(SLMixin):

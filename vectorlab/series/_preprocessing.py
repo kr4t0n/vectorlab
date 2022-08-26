@@ -8,7 +8,11 @@ import numpy as np
 from functools import reduce
 from scipy import interpolate
 
-from ..utils._check import check_nd_array, check_valid_int, check_valid_option
+from ..utils._check import (
+    check_nd_array,
+    check_valid_int, check_valid_float,
+    check_valid_option
+)
 
 EPS = 1e-8
 
@@ -87,9 +91,9 @@ def format_ts(ts, series, step, start_ts=None):
 
     ts = check_nd_array(ts, n=1)
     series = check_nd_array(series, n=2)
-    step = check_valid_int(
-        step,
-        lower=1, variable_name='step'
+    step = check_valid_float(
+        float(step),
+        lower=0, variable_name='step'
     )
 
     sorted_index = np.argsort(ts)
@@ -162,9 +166,9 @@ def aggregate_ts(ts, series, step, agg_type, start_ts=None):
 
     ts = check_nd_array(ts, n=1)
     series = check_nd_array(series, n=2)
-    step = check_valid_int(
-        step,
-        lower=1, variable_name='step'
+    step = check_valid_float(
+        float(step),
+        lower=0, variable_name='step'
     )
     agg_type = check_valid_option(
         agg_type,

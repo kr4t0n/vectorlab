@@ -478,7 +478,7 @@ class TSData(SLMixin):
         multiple attributes, therefore, as a result, there will be n_attrs
         subplots in the way of (n_attrs, 1, ).
 
-        ***NOTICE***: It will be not recommended to directly show the TSData
+        ***NOTICE***: It is not recommended to directly show the TSData
         when you have a large set of attributes, it will make your figure look
         quite squeezed. You could use `compress` parameter to plot multiple
         attributes inside one figure.
@@ -494,7 +494,7 @@ class TSData(SLMixin):
             own subgraph.
         show_date : bool
             When show_date is True, the timestamp will be converted into date.
-            When show_data is False, the raw timestamp will be shown.
+            When show_date is False, the raw timestamp will be shown.
 
         Returns
         -------
@@ -745,8 +745,8 @@ class TSDataset(SLMixin):
 
         Returns
         -------
-        TSData : TSData
-            TSData itself.
+        TSDataset : TSDataset
+            TSDataset itself.
 
         Raises
         ------
@@ -830,6 +830,117 @@ class TSDataset(SLMixin):
         )
 
         return df
+
+    def show(self, entity_names=None, show_date=True):
+        r"""The visualization of TSDataset.
+
+        This function provides visualization of the TSData stored in
+        TSDataset. In this function, we will use one single figure to
+        plot multiple entities, therefore, as a result, there will be
+        n_entities subplots in the way of (n_entities, 1, ).
+
+        ***NOTICE***: It is not recommended to directly show the TSDataset
+        when you have a large set of entities, you should first use slice
+        to obtain a subset of TSDataset, and then use this function to plot.
+
+        Parameters
+        ----------
+        entity_names : str
+            The entities to be plotted, if not provided, all entities
+            will be plotted.
+        show_date : bool
+            When show_date is True, the timestamp will be converted into date.
+            When show_date is False, the raw timestamp will be shown.
+
+        Returns
+        -------
+        TSDataset : TSDataset
+            TSDataset itself.
+
+         Raises
+        ------
+        ValueError
+            If input entity_names have entities which are not existed in
+            TSDataset, a ValueError is raised.
+        """
+
+        if entity_names is None:
+            entity_names = self.entities_
+        elif isinstance(entity_names, str):
+            entity_names = [entity_names]
+
+        entity_names = _check_ndarray(entity_names)
+
+        # validation of entity names
+        if not np.all(np.isin(entity_names, self.entities_)):
+
+            invalid_entity_names = entity_names[
+                ~np.isin(entity_names, self.entities_)
+            ]
+
+            raise ValueError(
+                f'The input entity names, {entity_names} is not valid. '
+                f'The entities, {invalid_entity_names} do(es) not exist in '
+                f'{self.entities_}.'
+            )
+
+        n_entities = entity_names.shape[0]
+
+        # plot the entities
+
+        # original height and width
+        height, width = 5, 5
+
+        # converted height and width
+        height = height * n_entities
+        width = width * int(
+            np.log(
+                max(
+                    self.dataset_[self.entities_ == entity][0].n_samples_
+                    for entity in entity_names
+                )
+            )
+        )
+
+        init_plot(height=height, width=width)
+
+        for i, entity in enumerate(entity_names):
+
+            ts_data = self.dataset_[self.entities_ == entity][0]
+
+            if show_date:
+
+                plot2d(
+                    x=np.vectorize(ts_to_dttz)(
+                        np.tile(ts_data.ts_, ts_data.n_attrs_)
+                    ),
+                    y=ts_data.attrs_.ravel(),
+                    categories=np.repeat(
+                        ts_data.attr_names_, ts_data.n_samples_
+                    ),
+                    lines='-',
+                    legend_title='attributes',
+                    title=entity,
+                    ax_pos=(n_entities, 1, i + 1)
+                )
+
+            else:
+
+                plot2d(
+                    x=np.tile(ts_data.ts_, ts_data.n_attrs_),
+                    y=ts_data.attrs_.ravel(),
+                    categories=np.repeat(
+                        ts_data.attr_names_, ts_data.n_samples_
+                    ),
+                    lines='-',
+                    legend_title='attributes',
+                    title=entity,
+                    ax_pos=(n_entities, 1, i + 1)
+                )
+
+        show_plot()
+
+        return self
 
     def __getitem__(self, key):
         r"""The built-in __getitem__ method in TSDataset.

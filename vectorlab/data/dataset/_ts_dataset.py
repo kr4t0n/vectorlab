@@ -109,6 +109,11 @@ class TSData(SLMixin):
         timestamp : str, optional
             The time stamp column to be inferred.
 
+        Returns
+        -------
+        TSData : TSData
+            TSData itself.
+
         Raises
         ------
         ValueError
@@ -135,7 +140,7 @@ class TSData(SLMixin):
                 )
             else:
                 self.entity_ = df[entity].iloc[0]
-                df = df[set(df.columns) - set([self.entity_])]
+                df = df.drop(columns=[entity])
         else:
             self.entity_ = entity
 
@@ -167,7 +172,7 @@ class TSData(SLMixin):
         # Validation
         self._validate()
 
-        return
+        return self
 
     def to_pandas(self, with_entity=True):
         r"""Convert TSData to pandas.DataFrame.
@@ -236,6 +241,11 @@ class TSData(SLMixin):
         attr : array_like, shape (n_samples, ) or (1, n_samples)
             The added attribute data.
 
+        Returns
+        -------
+        TSData : TSData
+            TSData itself.
+
         Raises
         ------
         ValueError
@@ -274,7 +284,7 @@ class TSData(SLMixin):
 
         self._validate()
 
-        return
+        return self
 
     def del_attr(self, attr_name):
         r"""Delete attribute data from TSData.
@@ -287,6 +297,11 @@ class TSData(SLMixin):
         ----------
         attr_name : str
             The attribute to be deleted.
+
+        Returns
+        -------
+        TSData : TSData
+            TSData itself.
 
         Raises
         ------
@@ -306,7 +321,7 @@ class TSData(SLMixin):
 
         self._validate()
 
-        return
+        return self
 
     def format_timestamp(self, step):
         r"""Formatting time stamp as well as attributes data in TSData.
@@ -319,6 +334,11 @@ class TSData(SLMixin):
         ----------
         step : int, float
             The step between two time stamps.
+
+        Returns
+        -------
+        TSData : TSData
+            TSData itself.
         """
 
         self.ts_, self.attrs_ = format_ts(
@@ -328,7 +348,7 @@ class TSData(SLMixin):
 
         self._validate()
 
-        return
+        return self
 
     def aggregate_timestamp(self, step, agg_type):
         r"""Aggregating time stamp as well as attributes data in TSData.
@@ -343,6 +363,11 @@ class TSData(SLMixin):
             The step between two time stamps.
         agg_type : str
             The aggregation method used to aggregate the time stamp.
+
+        Returns
+        -------
+        TSData : TSData
+            TSData itself.
         """
 
         self.ts_, self.attrs_ = aggregate_ts(
@@ -353,7 +378,7 @@ class TSData(SLMixin):
 
         self._validate()
 
-        return
+        return self
 
     def interpolate(self, kind):
         r"""Interpolate and fill in the missing attributes data in TSData.
@@ -367,6 +392,11 @@ class TSData(SLMixin):
         ----------
         kind : str
             The method used in interpolation.
+
+        Returns
+        -------
+        TSData : TSData
+            TSData itself.
         """
 
         self.attrs_ = series_interpolate(
@@ -376,7 +406,7 @@ class TSData(SLMixin):
 
         self._validate()
 
-        return
+        return self
 
     def standardize(self):
         r"""The automatic standardization process to TSData.
@@ -386,6 +416,11 @@ class TSData(SLMixin):
         in the format_timestamp. And we also use `cubic` as the method in
         interpolation, since this method is kind of enough in real life
         situation.
+
+        Returns
+        -------
+        TSData : TSData
+            TSData itself.
         """
 
         step = auto_ts_step(self.ts_, eps=4)
@@ -396,7 +431,7 @@ class TSData(SLMixin):
 
         self._validate()
 
-        return
+        return self
 
     def preprocessing(self, method):
         r"""Preprocessing the attribute data in TSData.
@@ -411,6 +446,11 @@ class TSData(SLMixin):
         ----------
         method : str
             The method to be used in preprocessing.
+
+        Returns
+        -------
+        TSData : TSData
+            TSData itself.
         """
 
         method = check_valid_option(
@@ -428,7 +468,7 @@ class TSData(SLMixin):
 
         self._validate()
 
-        return
+        return self
 
     def show(self, attr_names=None, compress=False, show_date=True):
         r"""The visualization of TSData.
@@ -455,6 +495,11 @@ class TSData(SLMixin):
         show_date : bool
             When show_date is True, the timestamp will be converted into date.
             When show_data is False, the raw timestamp will be shown.
+
+        Returns
+        -------
+        TSData : TSData
+            TSData itself.
 
         Raises
         ------
@@ -528,7 +573,7 @@ class TSData(SLMixin):
 
         show_plot()
 
-        return
+        return self
 
     def __getitem__(self, key):
         r"""The built-in __getitem__ method in TSData.
@@ -554,7 +599,7 @@ class TSData(SLMixin):
 
         Returns
         -------
-        TSData, array_like
+        TSData, dict, array_like
             The subset TSData of the original one.
 
         Raises
@@ -628,6 +673,260 @@ class TSData(SLMixin):
             f'    n_samples: {self.n_samples_}',
             f'    n_attrs  : {self.n_attrs_}',
             f'    attrs    : {self.attr_names_}'
+        ]
+
+        repr_string = '\n'.join(repr_string)
+
+        return repr_string
+
+
+class TSDataset(SLMixin):
+    r"""TSDataset is a data structure to store time series data for multiple
+    attributes for multiple entities.
+
+    TSDataset contains multiple TSData data structure to handle time series
+    data operations for each entity.
+
+    Attributes
+    ----------
+    entities_ : array_like, shape (n_samples)
+        The entities names of the entities.
+    dataset_ : array_like, shape (n_samples)
+        The dataset of the entities, every element is TSData.
+    n_entities_ : int
+        The number of entities contains in the TSDataset.
+    """
+
+    def __init__(self):
+
+        super(TSDataset, self).__init__()
+
+        return
+
+    def _validate(self):
+        r"""The data validation for TSDataset.
+
+        In this function, entities and dataset of TSDataset are checked.
+        Their dimension information and shape of matrix are verified.
+        After checking, `n_entities_` attributes of class are updated.
+
+        ***NOTICE***: It is strongly recommended that after manipulation
+        to the data in TSDataset, this function is applied to ensure data
+        consistency inside.
+        """
+
+        assert self.entities_.ndim == 1
+        assert self.dataset_.ndim == 1
+        assert self.entities_.shape[0] == self.dataset_.shape[0]
+
+        self.n_entities_ = self.entities_.shape[0]
+
+        return
+
+    def from_pandas(self, df, entity=None, timestamp=None):
+        r"""Convert TSDataset from pandas.DataFrame.
+
+        This function load data from a `pandas.DataFrame`. TSDataset aims
+        to be store data for multiple entities, and it is highly recommended
+        that there is entity columns in the data frame that declared the
+        entities. It will try to infer the entity name from such column.
+
+        Also a time stamp columns is also needed to be pointed out. If
+        not, it will automatically infer the time stamp in an ascending
+        integer order begin from 0 for each entity.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            The input DataFrame to be loaded.
+        entity : str, optional
+            The entity column to be inferred.
+        timestamp : str, optional
+            The time stamp column to be inferred.
+
+        Returns
+        -------
+        TSData : TSData
+            TSData itself.
+
+        Raises
+        ------
+        ValueError
+            If the specified entities column does not exist, a ValueError
+            is raised.
+        """
+
+        if entity is None:
+            entity = str(uuid.uuid4())
+            warnings.warn(
+                f'There is no entity information being specified, TSDataset '
+                f'will treat all data as one entity, and randomly generate '
+                f'a id for your entity, your id is {entity}. If you wish to '
+                f'use a given entity name, you can either pass a name to '
+                f'entity parameter or a column name contained entities names.'
+            )
+
+            df['_entity'] = entity
+            entity = '_entity'
+        elif entity in df.columns:
+            entity = entity
+        else:
+            df['_entity'] = entity
+            entity = '_entity'
+
+        if timestamp is None:
+            warnings.warn(
+                'TSDataset time stamp column is not specified. It will '
+                'automatically add a series of time stamps according '
+                'to ascending order of integers from 0.'
+            )
+
+            df['_ts'] = np.arange(df.shape[0])
+            timestamp = '_ts'
+        else:
+            if timestamp not in df.columns:
+                raise ValueError(
+                    f'TSDataset cannot find specified time stamp column '
+                    f'in DataFrame. Potential columns are: {df.columns}'
+                )
+
+        self.entities_ = df[entity].drop_duplicates().to_numpy()
+
+        dataset = []
+        for entity_ in self.entities_:
+
+            ts_data = TSData()
+            ts_data.from_pandas(
+                df[df[entity] == entity_],
+                entity=entity,
+                timestamp=timestamp
+            )
+
+            dataset.append(ts_data)
+
+        self.dataset_ = np.array(dataset, dtype=np.object_)
+
+        # Validation
+        self._validate()
+
+        return self
+
+    def to_pandas(self):
+        r"""Convert TSDataset to pandas.DataFrame.
+
+        This function pour data to a `pandas.DataFrame`. In this way,
+        you can conveniently store TSDataset into a `csv` file using the
+        interface provided by pandas.
+
+        Returns
+        -------
+        pandas.DataFrame
+            The output pandas.DataFrame.
+        """
+
+        df = pd.concat(
+            np.vectorize(lambda x: x.to_pandas())(
+                self.dataset_
+            )
+        )
+
+        return df
+
+    def __getitem__(self, key):
+        r"""The built-in __getitem__ method in TSDataset.
+
+        For TSDataset, __getitem__ is mainly focused on returning the
+        desired TSData or TSDataset.
+
+        When the key parameter in __getitem__ is a slice, it will try
+        to slice the dataset and return a subset of dataset of the
+        original TSDataset.
+
+        When the key parameter in __getitem__ is an integer, it will try
+        to return the `i`-th TSData inside TSDataset.
+
+        When the key parameter in __getitem__ is a string, it will try
+        to treat the key as a entity name and return the corresponding
+        TSData.
+
+        Parameters
+        ----------
+        key : int, str, slice
+            The parameter to be used to obtain a subset of TSDataset.
+
+        Returns
+        -------
+        TSDataset, TSData
+            The subset TSDataset of the original one.
+
+        Raises
+        ------
+        ValueError
+            If the key parameter in __getitem__ is int, but it is larger
+            than the number of entities, a ValueError is raised.
+
+            If the key parameter in __getitem__ is string but not appeared
+            in the provided entities, a ValueError is raised.
+
+            If the key parameter in __getitem__ is not slice, int, or str,
+            a ValueError is raised.
+        """
+
+        if isinstance(key, slice):
+
+            other = deepcopy(self)
+
+            other.entities_ = other.entities_[key]
+            other.dataset_ = other.dataset_[key]
+
+            other._validate()
+
+            return other
+        elif isinstance(key, int):
+
+            key = check_valid_int(
+                key,
+                lower=0, upper=self.n_entities_ - 1,
+                variable_name='entity index'
+            )
+            ts_data = self.dataset_[key]
+
+            return ts_data
+        elif isinstance(key, str):
+
+            key = check_valid_option(
+                key,
+                options=self.entities_,
+                variable_name='entity name'
+            )
+            ts_data = self.dataset_[self.entities_ == key][0]
+
+            return ts_data
+        else:
+            raise ValueError(
+                f'TSDataset currently does not support using {key} to get '
+                f'items.'
+            )
+
+    def __repr__(self):
+        r"""THe built-in __repr__ method in TSDataset.
+
+        For TSDataset, __repr__ is mainly focused on showing some statistical
+        number of TSDataset.
+
+        Currently, __repr__ will show the number of entities, theirs names
+        accordingly.
+
+        Returns
+        -------
+        repr_string : str
+            The string to be shown when called by print function.
+        """
+
+        repr_string = [
+            f'[TSDataset]',
+            f'   n_entities: {self.n_entities_}',
+            f'   entities  : {self.entities_}'
         ]
 
         repr_string = '\n'.join(repr_string)

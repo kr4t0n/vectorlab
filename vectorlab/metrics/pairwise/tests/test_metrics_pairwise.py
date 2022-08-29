@@ -4,7 +4,8 @@ import numpy as np
 from vectorlab.metrics.pairwise import (
     dtw, dtw_estimate,
     lp_norm,
-    sbd
+    sbd,
+    kl_div
 )
 
 n_samples = 100
@@ -12,6 +13,10 @@ n_features = 3
 
 X = np.random.rand(n_samples, n_features)
 Y = np.random.rand(n_samples, n_features)
+
+# for only one dimension support distance functions
+X1 = np.random.rand(n_samples)
+Y1 = np.random.rand(n_samples)
 
 
 @pytest.mark.parametrize('weighted', [True, False])
@@ -93,3 +98,27 @@ def sbd_efficency():
 
 def test_sbd_efficency(benchmark):
     benchmark(sbd_efficency)
+
+
+def test_kl_div():
+
+    # test identity of indiscernibles
+    assert np.isclose(kl_div(X1, X1), 0)
+    assert np.isclose(kl_div(Y1, Y1), 0)
+
+    # test symmetry
+    # kl_div may need a larger atol since the result
+    # may vary every time
+    assert np.isclose(
+        kl_div(X1, Y1),
+        kl_div(Y1, X1),
+        atol=1e-3
+    )
+
+
+def kl_div_efficency():
+    kl_div(X1, Y1)
+
+
+def test_kl_div_efficency(benchmark):
+    benchmark(kl_div_efficency)

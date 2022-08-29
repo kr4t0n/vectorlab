@@ -27,3 +27,9 @@ pillow
 # PyTorch #
 ###########
 torch
+
+# utilities module #
+####################
+pytz
+dill
+pyyaml

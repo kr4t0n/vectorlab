@@ -5,4 +5,5 @@ from . import graph
 from . import metrics
 from . import plot
 from . import series
+from . import stats
 from . import utils

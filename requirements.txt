@@ -32,4 +32,5 @@ torch
 ####################
 pytz
 dill
+halo
 pyyaml

@@ -5,13 +5,13 @@ of words to be calculated the times they appeared in the certain
 scope.
 """
 
-import warnings
 import numpy as np
 
 from functools import reduce
+from sklearn.base import TransformerMixin
 
-from ..base import KVNode, SLMixin
-from ..utils._check import check_valid_float
+from ..base import KVNode
+from ..utils._check import check_valid_float, check_pairwise_1d_array
 
 
 class FreqTreeNode(KVNode):
@@ -88,7 +88,7 @@ class FreqTreeNode(KVNode):
         return key == self.parent_.key_
 
 
-class FreqTree(SLMixin):
+class FreqTree(TransformerMixin):
     r"""A tree structure that every node is a FreqTreeNode.
 
     The idea is to construct a prefix tree that every node
@@ -107,15 +107,35 @@ class FreqTree(SLMixin):
         The root node of the FreqTree.
     split_token_ : str
         The default token used to split the target into chunks of tokens.
+    freq_threshold_ : float, optional
+        The threshold that nodes' frequency under this threshold
+        will be merged.
+    failed_safe_ : str, optional
+        The failed safe string used to replace the input which
+        cannot be encoded.
+    X_ : array_like, shape (n_samples)
+        The input array.
+    transformed_X_ : array_like, shape (n_samples)
+        The transformed array.
     """
 
-    def __init__(self):
+    def __init__(self, split_token='', freq_threshold=0.1,
+                 failed_safe='invalid'):
+
+        freq_threshold = check_valid_float(
+            freq_threshold,
+            lower=0.0, upper=1.0,
+            variable_name='frequency threshold'
+        )
 
         self.root_ = FreqTreeNode(None, np.Inf)
+        self.split_token_ = split_token
+        self.freq_threshold_ = freq_threshold
+        self.failed_safe_ = failed_safe
 
         return
 
-    def build_tree(self, targets, split_token=''):
+    def build_tree(self, targets):
         r"""Build frequency tree from multiple targets.
 
         To build a frequency tree, you also need to specify the
@@ -130,11 +150,7 @@ class FreqTree(SLMixin):
         ----------
         targets : list
             The list of targets to be used to set up a frequency tree.
-        split_token : str, optional
-            The token used to split the target into chunks of tokens.
         """
-
-        self.split_token_ = split_token
 
         for target in targets:
 
@@ -320,12 +336,6 @@ class FreqTree(SLMixin):
             will be merged.
         """
 
-        freq_threshold = check_valid_float(
-            freq_threshold,
-            lower=0.0, upper=1.0,
-            variable_name='frequency threshold'
-        )
-
         sub_nodes = []
         sub_nodes_values = []
 
@@ -373,86 +383,126 @@ class FreqTree(SLMixin):
 
         return
 
-    def merge_nodes(self, freq_threshold=0.1):
+    def merge_nodes(self):
         r"""The merge nodes function.
 
         The entrance point to merge the nodes with the frequency
         value under the threshold.
-
-        Parameters
-        ----------
-        freq_threshold : float, optional
-            The threshold that nodes' frequency under this threshold
-            will be merged.
         """
 
         for child in self.root_.children_.values():
-            self._merge_nodes_helper(child, freq_threshold)
+            self._merge_nodes_helper(child, self.freq_threshold_)
 
         return
 
-    def encode(self, targets,
-               split_token=None,
-               failed_safe='invalid'):
-        r"""Encode the input targets into a more general form.
+    def fit(self, X, Y=None):
+        r"""Fit a FreqTree
+
+        All the input data is provided by X, while Y is set to None
+        to be ignored. In FreqTree, this function will copy the input X
+        as the attribute and fit the FreqTree.
+
+        Parameters
+        ----------
+        X : array_like, shape (n_samples)
+            The input array.
+        Y : Ignored
+            Not used, present for scikit-learn API consistency by convention.
+
+        Returns
+        -------
+        self : object
+            FreqTree class object itself.
+        """
+
+        X, Y = check_pairwise_1d_array(X, Y, dtype=np.str_)
+
+        self.X_ = X
+
+        # FreqTree fit process
+        self.build_tree(self.X_)
+        self.freq_transform()
+        self.merge_nodes()
+
+        return self
+
+    def _transform_one(self, target):
+        r"""Transform one using fitted FreqTree
 
         After the construction of a FreqTree, since we have merged
         a lot of nodes with the frequency under the threshold and
         replace them with a wild character \*. Therefore, we also
         want to encode the input that replace the merged tokens with
-        \* accordingly. This encode function will serve this purpose.
+        \* accordingly. This transform function will serve this purpose.
 
         Parameters
         ----------
-        targets : list
-            The list of inputs that need to be encoded.
-        split_token : str, optional
-            The split token used to split the input.
-        failed_safe : str, optional
-            The failed safe string used to replace the input which
-            cannot be encoded.
+        target : str
+            The input target.
 
         Returns
         -------
-        list
-            The list of encoded inputs.
+        transformed_target : str
+            The transformed target.
         """
 
-        if split_token is None:
-            split_token = self.split_token_
-        else:
-            warnings.warn(
-                f'The original split token is {self.split_token_}, '
-                f'and the new split token is {split_token}. This '
-                f'may cause undesired results.'
-            )
+        cur_node = self.root_
+        transformed_target = None
 
-        encoded_targets = []
+        encoded_fields = []
+        for field in target.strip().split(self.split_token_):
 
-        for target in targets:
-
-            cur_node = self.root_
-
-            encoded_fields = []
-            for field in target.strip().split(split_token):
-
-                if field in cur_node.children_:
-                    cur_node = cur_node.children_[field]
-                    encoded_fields.append(cur_node.key_)
-                elif '*' in cur_node.children_:
-                    cur_node = cur_node.children_['*']
-                    encoded_fields.append(cur_node.key_)
-                else:
-                    encoded_targets.append(failed_safe)
-                    break
+            if field in cur_node.children_:
+                cur_node = cur_node.children_[field]
+                encoded_fields.append(cur_node.key_)
+            elif '*' in cur_node.children_:
+                cur_node = cur_node.children_['*']
+                encoded_fields.append(cur_node.key_)
             else:
+                transformed_target = self.failed_safe_
+                break
+        else:
 
-                if '<END>' in cur_node.children_:
-                    encoded_targets.append(split_token.join(encoded_fields))
-                else:
-                    encoded_targets.append(failed_safe)
+            if '<END>' in cur_node.children_:
+                transformed_target = self.split_token_.join(encoded_fields)
+            else:
+                transformed_target = self.failed_safe_
 
-        return encoded_targets
+        return transformed_target
+
+    def transform(self, X, Y=None):
+        r"""Transform using fitted FreqTree
+
+        All the input data is provided by X, while Y is set to None
+        to be ignored. In FreqTree, this function actually transform
+        the input data X to transfromed by FreqTree.
+
+        After the construction of a FreqTree, since we have merged
+        a lot of nodes with the frequency under the threshold and
+        replace them with a wild character \*. Therefore, we also
+        want to encode the input that replace the merged tokens with
+        \* accordingly. This transform function will serve this purpose.
+
+        Parameters
+        ----------
+        X : array_like, shape (n_samples)
+            The input array.
+        Y : Ignored
+            Not used, present for scikit-learn API consistency by convention.
+
+        Returns
+        -------
+        transformed_X : array_like, shape (n_samples)
+            The transformed input array.
+        """
+
+        X, Y = check_pairwise_1d_array(X, Y, dtype=np.str_)
+
+        self.transformed_X_ = np.vectorize(
+            self._transform_one, otypes=[np.str_]
+        )(X)
+
+        return self.transformed_X_
 
     def _repr_helper(self, node, return_str,
                      indent='', indent_width=4):

@@ -107,6 +107,8 @@ class FreqTree(TransformerMixin):
         The root node of the FreqTree.
     split_token_ : str
         The default token used to split the target into chunks of tokens.
+    wild_token_ : str
+        The wild token used to replace the merged tokens.
     freq_threshold_ : float, optional
         The threshold that nodes' frequency under this threshold
         will be merged.
@@ -119,7 +121,8 @@ class FreqTree(TransformerMixin):
         The transformed array.
     """
 
-    def __init__(self, split_token='', freq_threshold=0.1,
+    def __init__(self, split_token='', wild_token='*',
+                 freq_threshold=0.1,
                  failed_safe='invalid'):
 
         freq_threshold = check_valid_float(
@@ -130,6 +133,7 @@ class FreqTree(TransformerMixin):
 
         self.root_ = FreqTreeNode(None, np.Inf)
         self.split_token_ = split_token
+        self.wild_token_ = wild_token
         self.freq_threshold_ = freq_threshold
         self.failed_safe_ = failed_safe
 
@@ -252,7 +256,7 @@ class FreqTree(TransformerMixin):
         r"""Merge multiple nodes from the same parent.
 
         When merging nodes have multiple names, we use a wild character
-        \* as the name of the new node. If the merging nodes have the same
+        as the name of the new node. If the merging nodes have the same
         name, the new node will inherit it. The value of the new node is
         simply the sum of all the merging nodes.
 
@@ -276,7 +280,7 @@ class FreqTree(TransformerMixin):
         nodes_keys = np.unique(np.array([node.key_ for node in nodes]))
 
         if nodes_keys.shape[0] > 1:
-            nodes_key = '*'
+            nodes_key = self.wild_token_
         else:
             nodes_key = nodes_keys[0]
 
@@ -431,9 +435,9 @@ class FreqTree(TransformerMixin):
 
         After the construction of a FreqTree, since we have merged
         a lot of nodes with the frequency under the threshold and
-        replace them with a wild character \*. Therefore, we also
+        replace them with a wild character. Therefore, we also
         want to encode the input that replace the merged tokens with
-        \* accordingly. This transform function will serve this purpose.
+        accordingly. This transform function will serve this purpose.
 
         Parameters
         ----------
@@ -455,8 +459,8 @@ class FreqTree(TransformerMixin):
             if field in cur_node.children_:
                 cur_node = cur_node.children_[field]
                 encoded_fields.append(cur_node.key_)
-            elif '*' in cur_node.children_:
-                cur_node = cur_node.children_['*']
+            elif self.wild_token_ in cur_node.children_:
+                cur_node = cur_node.children_[self.wild_token_]
                 encoded_fields.append(cur_node.key_)
             else:
                 transformed_target = self.failed_safe_
@@ -479,9 +483,9 @@ class FreqTree(TransformerMixin):
 
         After the construction of a FreqTree, since we have merged
         a lot of nodes with the frequency under the threshold and
-        replace them with a wild character \*. Therefore, we also
+        replace them with a wild character. Therefore, we also
         want to encode the input that replace the merged tokens with
-        \* accordingly. This transform function will serve this purpose.
+        accordingly. This transform function will serve this purpose.
 
         Parameters
         ----------

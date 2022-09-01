@@ -4,8 +4,8 @@ import pytest
 
 from vectorlab.data.dataset import SequenceDataset
 from vectorlab.data.dataloader import (
-    PadSequenceDataLoader,
-    PadSequencesDataLoader
+    PadSeqDataLoader,
+    PadSeqsDataLoader
 )
 
 n_samples = 10
@@ -14,14 +14,14 @@ batch_size = 10
 
 
 @pytest.mark.parametrize('batch_first', [True, False])
-def test_PadSequenceDataLoader(batch_first):
+def test_PadSeqDataLoader(batch_first):
 
     input_seq = [torch.rand(n_len) for n_len in n_lens]
     output = torch.rand(n_samples)
     max_len = max(n_lens)
 
     dataset = SequenceDataset(input_seq, output)
-    loader = PadSequenceDataLoader(
+    loader = PadSeqDataLoader(
         dataset=dataset, batch_first=batch_first, batch_size=batch_size
     )
 
@@ -37,14 +37,14 @@ def test_PadSequenceDataLoader(batch_first):
 
 
 @pytest.mark.parametrize('batch_first', [True, False])
-def test_PadSequencesDataLoader(batch_first):
+def test_PadSeqsDataLoader(batch_first):
 
     input_seq = [torch.rand(n_len) for n_len in n_lens]
     output_seq = [torch.rand(n_len) for n_len in n_lens]
     max_len = max(n_lens)
 
     dataset = SequenceDataset(input_seq, output_seq)
-    loader = PadSequencesDataLoader(
+    loader = PadSeqsDataLoader(
         dataset=dataset, batch_first=batch_first, batch_size=batch_size
     )
 

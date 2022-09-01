@@ -77,7 +77,7 @@ def pad_sequences_collate(batch, batch_first=False):
     return X, X_lens, y, y_lens
 
 
-class PadSequenceDataLoader(DataLoader):
+class PadSeqDataLoader(DataLoader):
     r"""Load data in a padding manner.
 
     PadSequenceDataLoader inherits from original Dataloader,
@@ -91,7 +91,7 @@ class PadSequenceDataLoader(DataLoader):
 
     def __init__(self, *args, batch_first=False, **kwargs):
 
-        super(PadSequenceDataLoader, self).__init__(
+        super(PadSeqDataLoader, self).__init__(
             *args, **kwargs,
             collate_fn=lambda batch: pad_sequence_collate(
                 batch, batch_first=batch_first
@@ -101,7 +101,7 @@ class PadSequenceDataLoader(DataLoader):
         return
 
 
-class PadSequencesDataLoader(DataLoader):
+class PadSeqsDataLoader(DataLoader):
     r"""Load data in a padding manner.
 
     PadSequenceDataLoader inherits from original Dataloader,
@@ -115,7 +115,7 @@ class PadSequencesDataLoader(DataLoader):
 
     def __init__(self, *args, batch_first=False, **kwargs):
 
-        super(PadSequencesDataLoader, self).__init__(
+        super(PadSeqsDataLoader, self).__init__(
             *args, **kwargs,
             collate_fn=lambda batch: pad_sequences_collate(
                 batch, batch_first=batch_first

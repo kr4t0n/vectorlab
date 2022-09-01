@@ -1,5 +1,5 @@
 """
-Some useful Dataloader specified for PyTorch training is proposed.
+Some useful Dataloaders specified for PyTorch training are proposed.
 """
 
 import torch

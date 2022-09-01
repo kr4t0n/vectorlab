@@ -80,7 +80,7 @@ def pad_sequences_collate(batch, batch_first=False):
 class PadSeqDataLoader(DataLoader):
     r"""Load data in a padding manner.
 
-    PadSequenceDataLoader inherits from original Dataloader,
+    PadSeqDataLoader inherits from original Dataloader,
     while using a customized pad sequence collate function.
 
     Parameters
@@ -104,7 +104,7 @@ class PadSeqDataLoader(DataLoader):
 class PadSeqsDataLoader(DataLoader):
     r"""Load data in a padding manner.
 
-    PadSequenceDataLoader inherits from original Dataloader,
+    PadSeqsDataLoader inherits from original Dataloader,
     while using a customized pad sequence collate function.
 
     Parameters

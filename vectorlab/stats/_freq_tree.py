@@ -132,6 +132,7 @@ class FreqTree(TransformerMixin):
         )
 
         self.root_ = FreqTreeNode(None, np.Inf)
+
         self.split_token_ = split_token
         self.wild_token_ = wild_token
         self.freq_threshold_ = freq_threshold
@@ -406,6 +407,9 @@ class FreqTree(TransformerMixin):
         to be ignored. In FreqTree, this function will copy the input X
         as the attribute and fit the FreqTree.
 
+        It is a combination of operations of `build_tree`, `freq_transform`
+        and `merge_nodes`.
+
         Parameters
         ----------
         X : array_like, shape (n_samples)
@@ -479,7 +483,7 @@ class FreqTree(TransformerMixin):
 
         All the input data is provided by X, while Y is set to None
         to be ignored. In FreqTree, this function actually transform
-        the input data X to transfromed by FreqTree.
+        the input data X to transfromed_X.
 
         After the construction of a FreqTree, since we have merged
         a lot of nodes with the frequency under the threshold and

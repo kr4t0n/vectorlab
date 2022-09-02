@@ -117,6 +117,8 @@ def swap_matrix(origin_mat, transform=None, return_transform=False):
         The transformed matrix swapped using new order of indices.
     """
 
+    origin_mat = _check_ndarray(origin_mat)
+
     if transform is None:
         transform = np.arange(0, origin_mat.shape[0])
         np.random.shuffle(transform)
@@ -305,6 +307,9 @@ def find_forward_transform(origin_mat, transformed_mat,
         A possible transform.
     """
 
+    origin_mat = _check_ndarray(origin_mat)
+    transformed_mat = _check_ndarray(transformed_mat)
+
     method = check_valid_option(
         method, ['unary', 'pairwise', 'lawler', 'yaaq'],
         variable_name='finding assignment method'
@@ -360,6 +365,9 @@ def find_backward_transform(origin_mat, transformed_mat,
     transform : array_like, shape (n_samples)
         A possible transform.
     """
+
+    origin_mat = _check_ndarray(origin_mat)
+    transformed_mat = _check_ndarray(transformed_mat)
 
     transform = find_forward_transform(
         transformed_mat, origin_mat,

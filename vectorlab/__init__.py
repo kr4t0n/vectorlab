@@ -7,3 +7,4 @@ from . import plot
 from . import series
 from . import stats
 from . import utils
+from . import vector

@@ -1,1 +1,4 @@
-# VectorLab
+![VectorLab.png](./static/logo.png)
+
+---
+

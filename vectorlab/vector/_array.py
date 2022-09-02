@@ -21,7 +21,7 @@ def replace_array(origin_arr, origin_values, replace_values):
 
     Parameters
     ----------
-    origin_arr : array_like, shape (n_samples)
+    origin_arr : array_like
         The original array to be replaced.
     origin_values : array_like, shape (n_replacements)
         The original values to be replaced inside the array.

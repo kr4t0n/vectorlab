@@ -8,3 +8,6 @@ from . import series
 from . import stats
 from . import utils
 from . import vector
+
+# define VectorLab version
+__version__ = '0.0.1'

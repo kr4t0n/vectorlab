@@ -1,0 +1,55 @@
+name: Develop_Test
+
+on:
+  push:
+    branches:
+      - main
+      - dev-feat
+  pull_request:
+    branches:
+      - main
+      - dev-feat
+
+jobs:
+
+  pytest:
+    runs-on: ubuntu-latest
+  
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.8, 3.9, 3.10]
+        torch-version: [1.9.0]
+    
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Install PyTorch ${{ matrix.torch-version }}+cpu
+        run: |
+          pip install torch==${{ matrix.torch-version }}+cpu -f https://download.pytorch.org/whl/torch_stable.html
+      
+      - name: Install PyTorch Geometric
+        run: |
+          pip install torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://data.pyg.org/whl/torch-${{ matrix.torch-version }}+cpu.html
+          pip install torch-geometric
+      
+      - name: Install vectorlab package and test dependencies
+        run: |
+          pip install -e .[test]
+
+      - name: Run tests
+        run: |
+          pytest --cov --cov-report=xml vectorlab/
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          fail_ci_if_error: false

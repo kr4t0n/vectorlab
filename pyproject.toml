@@ -6,16 +6,19 @@ build-backend = "flit_core.buildapi"
 name = "vectorlab"
 description = "A lab for vectors."
 authors = [
-  { name="Kyle Yang", email="kyle.yang1995@gmail.com" },
-  { name="Emma Qin", email="emmaqin0722@gmail.com" }
+  {name="Kyle Yang", email="kyle.yang1995@gmail.com"},
+  {name="Emma Qin", email="emmaqin0722@gmail.com"}
 ]
 readme = "README.md"
-license = { file="LICENSE" }
+license = {file = "LICENSE.txt"}
 dynamic = ["version"]
 classifiers = [
-    "Programming Language :: Python :: 3",
+    "Development Status :: 3 - Alpha",
     "License :: OSI Approved :: BSD License",
-    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Operating System :: OS Independent"
 ]
 requires-python = ">=3.8"
 dependencies = [
@@ -36,7 +39,7 @@ dependencies = [
 
 [project.optional-dependencies]
 torch = [
-    "torch>=1.9.0"
+    "torch>=1.10.0"
 ]
 test = [
     "pytest>=7.1.2",

@@ -8,8 +8,8 @@ t_digest = vl.stats.TDigest(buffer_size=100)
 vl.utils.loading()(t_digest.fit)(x)
 
 quantiles = np.array([.1, .5, .9])
-resutls = t_digest.predict(quantiles)
+results = t_digest.predict(quantiles)
 actual_results = np.sort(x)[(quantiles * n_samples).astype(np.int_)]
 
-print(resutls)
+print(results)
 print(actual_results)

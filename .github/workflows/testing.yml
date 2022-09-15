@@ -1,14 +1,14 @@
-name: Develop_Test
+name: Testing
 
 on:
   push:
     branches:
       - main
-      - dev-feat
+      - dev*
   pull_request:
     branches:
       - main
-      - dev-feat
+      - dev*
 
 jobs:
 

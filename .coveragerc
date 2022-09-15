@@ -1,0 +1,7 @@
+[run]
+omit=vectorlab/data/dataset/*
+[report]
+exclude_lines =
+    raise
+    except
+    warn

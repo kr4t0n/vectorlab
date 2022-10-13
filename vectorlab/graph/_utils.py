@@ -30,9 +30,13 @@ def add_self_loop(adj_mat):
         The adjacency matrix of the graph.
     """
 
-    return_adj_mat = deepcopy(adj_mat)
+    return_adj_mat = deepcopy(adj_mat).asformat('lil')
 
     return_adj_mat.setdiag(1)
+
+    return_adj_mat = return_adj_mat.asformat(
+        adj_mat.getformat()
+    )
 
     return return_adj_mat
 
@@ -55,9 +59,13 @@ def remove_self_loop(adj_mat):
         The adjacency matrix of the graph.
     """
 
-    return_adj_mat = deepcopy(adj_mat)
+    return_adj_mat = deepcopy(adj_mat).asformat('lil')
 
     return_adj_mat.setdiag(0)
+
+    return_adj_mat = return_adj_mat.asformat(
+        adj_mat.getformat()
+    )
     return_adj_mat.eliminate_zeros()
 
     return return_adj_mat

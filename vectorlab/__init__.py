@@ -10,4 +10,4 @@ from . import utils
 from . import vector
 
 # define VectorLab version
-__version__ = '1.0.0rc0'
+__version__ = '1.0.0'

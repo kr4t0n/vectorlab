@@ -1,0 +1,36 @@
+# VectorLab Requirements
+
+# computation #
+###############
+numpy
+scipy
+pandas
+networkx
+
+# statistic #
+#############
+statsmodels
+
+# machine learning #
+####################
+scikit-learn
+
+# plot module #
+###############
+matplotlib
+seaborn
+
+# vision module #
+#################
+pillow
+
+# PyTorch #
+###########
+torch
+
+# utilities module #
+####################
+pytz
+dill
+halo
+pyyaml

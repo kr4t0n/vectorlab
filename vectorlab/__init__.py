@@ -3,6 +3,7 @@ from . import data
 from . import ensemble
 from . import graph
 from . import metrics
+from . import nn
 from . import plot
 from . import series
 from . import stats

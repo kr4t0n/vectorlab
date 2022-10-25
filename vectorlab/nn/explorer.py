@@ -67,7 +67,7 @@ class Explorer(SLMixin):
         The data annotation from batch to feed into neural network.
     loss_input : str
         The data annotation from batch to feed into loss function.
-    optimizer_option : str
+    optimizer_fn : str, callable
         The optimizer to be used to do optimization.
     learning_rate : float
         The learning rate used to update the parameters.
@@ -75,7 +75,7 @@ class Explorer(SLMixin):
         The weight decay factor to regularize the parameters.
     optimizer_kwargs: dict
         The extra arguments for initialize the optimizer.
-    scheduler_option : str
+    scheduler_fn : str, callable
         The scheduler to be used to adjust the learning rate.
     scheduler_kwargs : dict
         The extra arguments for initialize the scheduler.
@@ -94,6 +94,10 @@ class Explorer(SLMixin):
 
     Attributes
     ----------
+    net_ : torch.nn.Module
+        The defined neural network.
+    loss_fn_ : torch.nn.Module
+        The loss function to criticize the performance.
     k_ : int
         The hyper-parameter k of k fold cross validation.
     batch_size_ : int
@@ -102,14 +106,10 @@ class Explorer(SLMixin):
         The number of subprocesses to load data.
     num_epochs_ : int
         The number of epoch to train the neural network.
+    _loader_fns_ : dict
+        The dictionary stored different data loader functions.
     loader_fn_ : torch.utils.data.DataLoader, torch_geometric.loader.DataLoader
         The data loader to load the data from dataset.
-    loader_fns_ : dict
-        The dictionary stored different data loader functions.
-    net_ : torch.nn.Module
-        The defined neural network.
-    loss_fn_ : torch.nn.Module
-        The loss function to criticize the performance.
     batch_input_ : list
         The list of data annotations for batch.
     net_input_ : list
@@ -122,24 +122,26 @@ class Explorer(SLMixin):
         The tuple of net_input in indices.
     loss_input_ind_ : tuple
         The tuple of loss_input in indices.
-    optimizer_option_ : str
-        The given option to initialize corresponding optimizer.
+    _optimizers_ : dict
+        The dictionary stored different optimizers.
+    optimizer_fn_ : torch.optim.Optimizer
+        The given callable function to initialize corresponding optimizer.
     learning_rate_ : float
         The learning rate used to update the parameters.
     weight_decay_ : float
         The weight decay factor to regularize the parameters.
     optimizer_kwargs_: dict
         The extra arguments for initialize the optimizer.
-    optimizer_ : torch.optim.Adam
+    optimizer_ : torch.optim.Optimizer
         The optimizer used to train the model.
-    scheduler_ : torch.optim.lr_scheduler
-        The scheduler to decay the learning rate of optimizer.
-    schedulers_ : dict
-        The dictionary stored different scheduler.
-    scheduler_option_ : str
-        The given option to initialize corresponding scheduler.
+    _schedulers_ : dict
+        The dictionary stored different schedulers.
+    scheduler_fn_ : torch.optim.lr_scheduler
+        The given callable function to initialize corresponding scheduler.
     scheduler_kwargs_ : dict
         The extra arguments for initialize the scheduler.
+    scheduler_ : torch.optim.lr_scheduler
+        The scheduler to decay the learning rate of optimizer.
     device_ : torch.device
         The first device used to store the neural network and data.
     devices_ : list
@@ -216,9 +218,10 @@ class Explorer(SLMixin):
         valid_loader_fn=None, valid_loader_kwargs=None,
         test_loader_fn=None, test_loader_kwargs=None,
         batch_input=None, net_input=None, loss_input=None,
-        optimizer_option='adamw',
+        optimizer_fn='adamw',
         learning_rate=0.1, weight_decay=0, optimizer_kwargs=None,
-        scheduler_option='cosine_lr', scheduler_kwargs=None,
+        scheduler_fn='cosine_lr',
+        scheduler_kwargs=None,
         device=None,
         writer=False, writer_dir=None, writer_comment='',
         parameters_dict=None
@@ -264,13 +267,13 @@ class Explorer(SLMixin):
                 self.net_, device_ids=self.devices_
             )
 
-        self.optimizer_option_ = optimizer_option
+        self.optimizer_fn_ = optimizer_fn
         self.learning_rate_ = learning_rate
         self.weight_decay_ = weight_decay
         self.optimizer_kwargs_ = optimizer_kwargs
         self._init_optimizer()
 
-        self.scheduler_option_ = scheduler_option
+        self.scheduler_fn_ = scheduler_fn
         self.scheduler_kwargs_ = scheduler_kwargs
         self._init_scheduler()
 
@@ -352,10 +355,8 @@ class Explorer(SLMixin):
             Return itself.
         """
 
-        if callable(self.optimizer_option_):
-            self.optimizer_fn_ = self.optimizer_option_
-        else:
-            self.optimizer_fn_ = self._optimizers_[self.optimizer_option_]
+        if not callable(self.optimizer_fn_):
+            self.optimizer_fn_ = self._optimizers_[self.optimizer_fn_]
 
         self.optimizer_kwargs_ = \
             self.optimizer_kwargs_ if self.optimizer_kwargs_ else {}
@@ -384,18 +385,16 @@ class Explorer(SLMixin):
             Return itself.
         """
 
-        if callable(self.scheduler_option_):
-            self.scheduler_fn_ = self.scheduler_option_
+        if callable(self.scheduler_fn_):
             self.scheduler_kwargs_ = \
                 self.scheduler_kwargs_ if self.scheduler_kwargs_ else {}
         else:
-            self.scheduler_fn_ = self._schedulers_[self.scheduler_option_]
             if self.scheduler_kwargs_ is None:
-                if self.scheduler_option_ == 'step_lr':
+                if self.scheduler_fn_ == 'step_lr':
                     self.scheduler_kwargs_ = {
                         'step_size': self.num_epochs_ // 4
                     }
-                elif self.scheduler_option_ == 'cosine_lr':
+                elif self.scheduler_fn_ == 'cosine_lr':
                     self.scheduler_kwargs_ = {
                         'T_max': self.num_epochs_
                     }
@@ -403,6 +402,8 @@ class Explorer(SLMixin):
                     self.scheduler_kwargs_ = {}
             else:
                 self.scheduler_kwargs_ = self.scheduler_kwargs_
+
+            self.scheduler_fn_ = self._schedulers_[self.scheduler_fn_]
 
         self.scheduler_ = self.scheduler_fn_(
             self.optimizer_,
@@ -467,11 +468,12 @@ class Explorer(SLMixin):
             'batch_size': self.batch_size_,
             'num_workers': self.num_workers_,
             'num_epochs': self.num_epochs_,
-            'learning_rate': self.learning_rate_,
-            'weight_decay': self.weight_decay_,
         }
 
-        self.parameters_dict_.update(self.scheduler_kwargs_)
+        if self.optimizer_kwargs_:
+            self.parameters_dict_.update(self.optimizer_kwargs_)
+        if self.scheduler_kwargs_:
+            self.parameters_dict_.update(self.scheduler_kwargs_)
 
         if parameters_dict is not None:
             self.parameters_dict_.update(parameters_dict)

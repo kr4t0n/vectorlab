@@ -91,7 +91,7 @@ class PadSeqDataLoader(DataLoader):
 
     def __init__(self, *args, batch_first=False, **kwargs):
 
-        super(PadSeqDataLoader, self).__init__(
+        super().__init__(
             *args, **kwargs,
             collate_fn=lambda batch: pad_sequence_collate(
                 batch, batch_first=batch_first
@@ -115,7 +115,7 @@ class PadSeqsDataLoader(DataLoader):
 
     def __init__(self, *args, batch_first=False, **kwargs):
 
-        super(PadSeqsDataLoader, self).__init__(
+        super().__init__(
             *args, **kwargs,
             collate_fn=lambda batch: pad_sequences_collate(
                 batch, batch_first=batch_first

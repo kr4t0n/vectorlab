@@ -145,7 +145,7 @@ class NodeDataLoader(DataLoader):
 
     def __init__(self, *args, **kwargs):
 
-        super(NodeDataLoader, self).__init__(
+        super().__init__(
             *args, **kwargs,
             collate_fn=gnn_node_collate
         )
@@ -162,7 +162,7 @@ class GraphDataLoader(DataLoader):
 
     def __init__(self, *args, **kwargs):
 
-        super(GraphDataLoader, self).__init__(
+        super().__init__(
             *args, **kwargs,
             collate_fn=gnn_graph_collate
         )
@@ -187,7 +187,7 @@ class MaskGraphDataLoader(DataLoader):
 
     def __init__(self, *args, p=0.5, mask_method='zeros', **kwargs):
 
-        super(MaskGraphDataLoader, self).__init__(
+        super().__init__(
             *args, **kwargs,
             collate_fn=lambda batch: mask_gnn_collate(
                 batch, p=p, mask_method=mask_method

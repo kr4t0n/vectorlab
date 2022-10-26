@@ -65,7 +65,7 @@ class ARIMA(TransformerMixin):
 
     def __init__(self, order='auto'):
 
-        super(ARIMA, self).__init__()
+        super().__init__()
 
         self.p_, self.d_, self.q_ = None, None, None
 

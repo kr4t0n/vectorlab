@@ -81,7 +81,7 @@ class KVNode(SLMixin):
 
     def __init__(self, key, value):
 
-        super(KVNode, self).__init__()
+        super().__init__()
 
         self.key_ = key
         self.value_ = value
@@ -139,7 +139,7 @@ class Stack(SLMixin):
 
     def __init__(self, dtype=None):
 
-        super(Stack, self).__init__()
+        super().__init__()
 
         self.stack_ = []
         self.dtype_ = dtype
@@ -239,7 +239,7 @@ class Queue(SLMixin):
 
     def __init__(self, dtype=None):
 
-        super(Queue, self).__init__()
+        super().__init__()
 
         self.queue_ = []
         self.dtype_ = dtype

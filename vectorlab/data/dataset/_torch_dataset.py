@@ -35,7 +35,7 @@ class MultiDataset(SLMixin, Dataset):
 
     def __init__(self, *args):
 
-        super(MultiDataset, self).__init__()
+        super().__init__()
 
         tensors = tuple(_check_tensor(arg) for arg in args)
 
@@ -111,7 +111,7 @@ class ImageDataset(SLMixin, Dataset):
 
     def __init__(self, root, annotation, transform=None):
 
-        super(ImageDataset, self).__init__()
+        super().__init__()
 
         self.root_ = root
         self.annotations_ = pd.read_csv(annotation)
@@ -197,7 +197,7 @@ class SequenceDataset(SLMixin, Dataset):
 
     def __init__(self, input_seq, output_seq):
 
-        super(SequenceDataset, self).__init__()
+        super().__init__()
 
         assert len(input_seq) == len(output_seq)
 

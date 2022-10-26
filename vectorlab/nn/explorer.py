@@ -845,7 +845,10 @@ class Explorer(SLMixin):
         """
 
         if verbose:
-            print(f'Training with parameters: {self.__repr_parameters__()}')
+            print(
+                f'Training with parameters: {self.__repr_parameters__()} '
+                f'on devices {self.devices_}'
+            )
 
         self.best_loss_ = np.Inf
 
@@ -972,7 +975,8 @@ class Explorer(SLMixin):
         if verbose:
             print(
                 f'Training with parameters: k={self.k_}, '
-                f'{self.__repr_parameters__()}'
+                f'{self.__repr_parameters__()} '
+                f'on devices {self.devices_}'
             )
 
         accumulator = Accumulator(3, ['k_train_loss', 'k_valid_loss', 'k'])
@@ -1102,7 +1106,10 @@ class Explorer(SLMixin):
         """
 
         if verbose:
-            print(f'Inferring with parameters: {self.__repr_parameters__()}')
+            print(
+                f'Inferring with parameters: {self.__repr_parameters__()} '
+                f'on devices {self.devices_}'
+            )
 
         self.net_.to(self.device_)
         self.loss_fn_.to(self.device_)
@@ -1315,6 +1322,9 @@ class Explorer(SLMixin):
             print(
                 f'Inferring {len(dataset)} data in {ts:.6f}s '
                 f'[{len(dataset) / ts:.6f}it/s]'
+            )
+            print(
+                f'On devices: {self.devices_}'
             )
             print(self.summary_)
 

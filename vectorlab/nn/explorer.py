@@ -209,23 +209,21 @@ class Explorer(SLMixin):
         'cosine_lr': torch.optim.lr_scheduler.CosineAnnealingLR
     }
 
-    def __init__(
-        self,
-        net, loss_fn,
-        k=5,
-        batch_size=32, num_workers=8, num_epochs=100,
-        train_loader_fn='nn', train_loader_kwargs=None,
-        valid_loader_fn=None, valid_loader_kwargs=None,
-        test_loader_fn=None, test_loader_kwargs=None,
-        batch_input=None, net_input=None, loss_input=None,
-        optimizer_fn='adamw',
-        learning_rate=0.1, weight_decay=0, optimizer_kwargs=None,
-        scheduler_fn='cosine_lr',
-        scheduler_kwargs=None,
-        device=None,
-        writer=False, writer_dir=None, writer_comment='',
-        parameters_dict=None
-    ):
+    def __init__(self,
+                 net, loss_fn,
+                 k=5,
+                 batch_size=32, num_workers=8, num_epochs=100,
+                 train_loader_fn='nn', train_loader_kwargs=None,
+                 valid_loader_fn=None, valid_loader_kwargs=None,
+                 test_loader_fn=None, test_loader_kwargs=None,
+                 batch_input=None, net_input=None, loss_input=None,
+                 optimizer_fn='adamw',
+                 learning_rate=0.1, weight_decay=0, optimizer_kwargs=None,
+                 scheduler_fn='cosine_lr',
+                 scheduler_kwargs=None,
+                 device=None,
+                 writer=False, writer_dir=None, writer_comment='',
+                 parameters_dict=None):
 
         super(Explorer, self).__init__()
 

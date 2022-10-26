@@ -311,7 +311,9 @@ class Explorer(SLMixin):
                     for i in range(torch.cuda.device_count())
                 ]
                 self.device_ = self.devices_[0]
-            elif torch.backends.mps.is_available():
+            elif (
+                hasattr(torch.backends, 'mps')
+            ) and torch.backends.mps.is_available():
                 self.devices_ = [torch.device('mps')]
                 self.device_ = self.devices_[0]
             else:

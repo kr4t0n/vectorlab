@@ -225,7 +225,7 @@ class Explorer(SLMixin):
                  writer=False, writer_dir=None, writer_comment='',
                  parameters_dict=None):
 
-        super(Explorer, self).__init__()
+        super().__init__()
 
         self._init_devices_(device)
 

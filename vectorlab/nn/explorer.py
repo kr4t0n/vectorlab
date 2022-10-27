@@ -12,6 +12,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torch_geometric.data import Data, Batch
 
 from ..base import SLMixin, Accumulator
+from ._earlystopping import EarlyStopping
 from ..data.dataloader._torch_dataloader import (
     PadSeqDataLoader, PadSeqsDataLoader
 )
@@ -79,6 +80,12 @@ class Explorer(SLMixin):
         The scheduler to be used to adjust the learning rate.
     scheduler_kwargs : dict
         The extra arguments for initialize the scheduler.
+    earlystopping_fn : str, callable
+        The earlystopping to be used to avoid overfitting.
+    earlystopping_metric : str
+        The montior metric for earlystopping.
+    earlystopping_kwarg : dict
+        The extra arguments for initialize the earlystopping.
     device : str, list, optional
         If given specified device or a list of devices, the explorer will use
         such device(s) as desired. If no device is specified, the explorer
@@ -142,6 +149,16 @@ class Explorer(SLMixin):
         The extra arguments for initialize the scheduler.
     scheduler_ : torch.optim.lr_scheduler
         The scheduler to decay the learning rate of optimizer.
+    _earlystoppings_ : dict
+        The dictionary stored different earlystoppings.
+    earlystopping_fn_ : callabe
+        The earlystopping to be used to avoid overfitting.
+    earlystopping_metric_ : str
+        The montior metric for earlystopping.
+    earlystopping_kwarg_ : dict
+        The extra arguments for initialize the earlystopping.
+    earlystopping_ : callable
+        The earlystopping to break epoch iteration.
     device_ : torch.device
         The first device used to store the neural network and data.
     devices_ : list
@@ -209,6 +226,10 @@ class Explorer(SLMixin):
         'cosine_lr': torch.optim.lr_scheduler.CosineAnnealingLR
     }
 
+    _earlystoppings_ = {
+        'earlystopping': EarlyStopping
+    }
+
     def __init__(self,
                  net, loss_fn,
                  k=5,
@@ -221,6 +242,8 @@ class Explorer(SLMixin):
                  learning_rate=0.1, weight_decay=0, optimizer_kwargs=None,
                  scheduler_fn='cosine_lr',
                  scheduler_kwargs=None,
+                 earlystopping_fn='earlystopping',
+                 earlystopping_metric='loss', earlystopping_kwargs=None,
                  device=None,
                  writer=False, writer_dir=None, writer_comment='',
                  parameters_dict=None):
@@ -274,6 +297,11 @@ class Explorer(SLMixin):
         self.scheduler_fn_ = scheduler_fn
         self.scheduler_kwargs_ = scheduler_kwargs
         self._init_scheduler()
+
+        self.earlystopping_fn_ = earlystopping_fn
+        self.earlystopping_kwargs_ = earlystopping_kwargs
+        self.earlystopping_metric_ = earlystopping_metric
+        self._init_earlystopping()
 
         self.writer_ = writer
         self.writer_dir_ = writer_dir
@@ -358,9 +386,6 @@ class Explorer(SLMixin):
             Return itself.
         """
 
-        if not callable(self.optimizer_fn_):
-            self.optimizer_fn_ = self._optimizers_[self.optimizer_fn_]
-
         self.optimizer_kwargs_ = \
             self.optimizer_kwargs_ if self.optimizer_kwargs_ else {}
 
@@ -371,6 +396,9 @@ class Explorer(SLMixin):
                 'weight_decay': self.weight_decay_
             }
         )
+
+        if not callable(self.optimizer_fn_):
+            self.optimizer_fn_ = self._optimizers_[self.optimizer_fn_]
 
         self.optimizer_ = self.optimizer_fn_(
             self.net_.parameters(),
@@ -412,6 +440,31 @@ class Explorer(SLMixin):
             self.optimizer_,
             **self.scheduler_kwargs_
         )
+
+        return self
+
+    def _init_earlystopping(self):
+        r"""Initialize proper earlystopping
+
+        Returns
+        -------
+        self : Explorer
+            Return itself.
+        """
+
+        self.earlystopping_kwargs_ = \
+            self.earlystopping_kwargs_ if self.earlystopping_kwargs_ else {}
+
+        if self.earlystopping_fn_ is None:
+            self.earlystopping_ = None
+        else:
+            if not callable(self.earlystopping_fn_):
+                self.earlystopping_fn_ = \
+                    self._earlystoppings_[self.earlystopping_fn_]
+
+            self.earlystopping_ = self.earlystopping_fn_(
+                **self.earlystopping_kwargs_
+            )
 
         return self
 
@@ -477,6 +530,8 @@ class Explorer(SLMixin):
             self.parameters_dict_.update(self.optimizer_kwargs_)
         if self.scheduler_kwargs_:
             self.parameters_dict_.update(self.scheduler_kwargs_)
+        if self.earlystopping_kwargs_:
+            self.parameters_dict_.update(self.earlystopping_kwargs_)
 
         if parameters_dict is not None:
             self.parameters_dict_.update(parameters_dict)
@@ -508,6 +563,10 @@ class Explorer(SLMixin):
             self.optimizer_,
             **self.scheduler_kwargs_
         )
+        if self.earlystopping_fn_:
+            self.earlystopping_ = self.earlystopping_fn_(
+                **self.earlystopping_kwargs_
+            )
 
         return self
 
@@ -562,6 +621,9 @@ class Explorer(SLMixin):
             self.optimizer_.step()
 
         self.scheduler_.step()
+
+        if self.earlystopping_:
+            self.earlystopping_.step()
 
         return self
 
@@ -891,11 +953,21 @@ class Explorer(SLMixin):
         for epoch in range(self.num_epochs_):
             self._train(train_loader)
 
-            if self.writer_ or save_best:
+            if self.writer_ or self.earlystopping_ or save_best:
                 train_metrics_ = self._evaluate(train_loader)
 
                 if valid_dataset is not None:
                     valid_metrics_ = self._evaluate(valid_loader)
+
+            if self.earlystopping_:
+                if valid_dataset is None:
+                    self.earlystopping_.record_metric(
+                        train_metrics_[self.earlystopping_metric_]
+                    )
+                else:
+                    self.earlystopping_.record_metric(
+                        valid_metrics_[self.earlystopping_metric_]
+                    )
 
             if self.writer_:
                 for metric, value in train_metrics_.items():
@@ -914,6 +986,9 @@ class Explorer(SLMixin):
                     if valid_metrics_['loss'] < self.best_loss_:
                         self.best_loss_ = valid_metrics_['loss']
                         self._save_best_model()
+
+            if self.earlystopping_ and self.earlystopping_.is_done():
+                break
 
         train_metrics_ = self._evaluate(train_loader)
         self.train_loss_ = train_metrics_['loss']
@@ -1028,6 +1103,11 @@ class Explorer(SLMixin):
             for epoch in range(self.num_epochs_):
                 self._train(k_train_dataloader)
 
+                if self.earlystopping_:
+                    self.earlystopping_.record_metric(
+                        k_valid_metrics_[self.earlystopping_metric_]
+                    )
+
                 if self.writer_:
                     k_train_metrics_ = self._evaluate(k_train_dataloader)
                     k_valid_metrics_ = self._evaluate(k_valid_dataloader)
@@ -1037,6 +1117,9 @@ class Explorer(SLMixin):
 
                     for metric, value in k_valid_metrics_.items():
                         k_valid_writer.add_scalar(metric, value, epoch)
+
+                if self.earlystopping_ and self.earlystopping_.is_done():
+                    break
 
             k_train_metrics_ = self._evaluate(k_train_dataloader)
             k_valid_metrics_ = self._evaluate(k_valid_dataloader)

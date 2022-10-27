@@ -1109,15 +1109,16 @@ class Explorer(SLMixin):
             for epoch in range(self.num_epochs_):
                 self._train(k_train_dataloader)
 
+                if self.writer_ or self.earlystopping_:
+                    k_train_metrics_ = self._evaluate(k_train_dataloader)
+                    k_valid_metrics_ = self._evaluate(k_valid_dataloader)
+
                 if self.earlystopping_:
                     self.earlystopping_.record_metric(
                         k_valid_metrics_[self.earlystopping_metric_]
                     )
 
                 if self.writer_:
-                    k_train_metrics_ = self._evaluate(k_train_dataloader)
-                    k_valid_metrics_ = self._evaluate(k_valid_dataloader)
-
                     for metric, value in k_train_metrics_.items():
                         k_train_writer.add_scalar(metric, value, epoch)
 

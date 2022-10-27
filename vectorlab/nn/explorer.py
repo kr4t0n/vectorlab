@@ -659,7 +659,7 @@ class Explorer(SLMixin):
 
             for batch in loader:
 
-                if not (isinstance(batch, tuple) or isinstance(batch, list)):
+                if not isinstance(batch, (tuple, list)):
                     batch = (batch, )
 
                 if isinstance(batch[0], torch.Tensor):
@@ -730,7 +730,7 @@ class Explorer(SLMixin):
 
             for batch in loader:
 
-                if not (isinstance(batch, tuple) or isinstance(batch, list)):
+                if not isinstance(batch, (tuple, list)):
                     batch = (batch, )
 
                 if isinstance(batch[0], torch.Tensor):
@@ -818,7 +818,7 @@ class Explorer(SLMixin):
 
             for batch in tqdm(loader, ascii=True, disable=not verbose):
 
-                if not (isinstance(batch, tuple) or isinstance(batch, list)):
+                if not isinstance(batch, (tuple, list)):
                     batch = (batch, )
 
                 net_input = tuple(
@@ -864,7 +864,7 @@ class Explorer(SLMixin):
 
             for batch in tqdm(loader, ascii=True, disable=not verbose):
 
-                if not (isinstance(batch, tuple) or isinstance(batch, list)):
+                if not isinstance(batch, (tuple, list)):
                     batch = (batch, )
 
                 net_input = tuple(
@@ -1387,7 +1387,7 @@ class Explorer(SLMixin):
         start_ts = time.time()
         for batch in tqdm(loader, ascii=True, disable=not verbose):
 
-            if not (isinstance(batch, tuple) or isinstance(batch, list)):
+            if not isinstance(batch, (tuple, list)):
                 batch = (batch, )
 
             net_input = tuple(

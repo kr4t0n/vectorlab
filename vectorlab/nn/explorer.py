@@ -227,7 +227,16 @@ class Explorer(SLMixin):
     }
 
     _earlystoppings_ = {
-        'earlystopping': EarlyStopping
+        'asc_es': lambda *args, **kwargs: EarlyStopping(
+            *args,
+            metric_type='ascending',
+            **kwargs
+        ),
+        'desc_es': lambda *args, **kwargs: EarlyStopping(
+            *args,
+            metric_type='descending',
+            **kwargs
+        )
     }
 
     def __init__(self,
@@ -242,7 +251,7 @@ class Explorer(SLMixin):
                  learning_rate=0.1, weight_decay=0, optimizer_kwargs=None,
                  scheduler_fn='cosine_lr',
                  scheduler_kwargs=None,
-                 earlystopping_fn='earlystopping',
+                 earlystopping_fn='desc_es',
                  earlystopping_metric='loss', earlystopping_kwargs=None,
                  device=None,
                  writer=False, writer_dir=None, writer_comment='',

@@ -416,30 +416,35 @@ class Explorer(SLMixin):
             Return itself.
         """
 
-        if callable(self.scheduler_fn_):
+        if self.scheduler_fn_ is None:
             self.scheduler_kwargs_ = \
                 self.scheduler_kwargs_ if self.scheduler_kwargs_ else {}
+            self.scheduler_ = None
         else:
-            if self.scheduler_kwargs_ is None:
-                if self.scheduler_fn_ == 'step_lr':
-                    self.scheduler_kwargs_ = {
-                        'step_size': self.num_epochs_ // 4
-                    }
-                elif self.scheduler_fn_ == 'cosine_lr':
-                    self.scheduler_kwargs_ = {
-                        'T_max': self.num_epochs_
-                    }
-                else:
-                    self.scheduler_kwargs_ = {}
+            if callable(self.scheduler_fn_):
+                self.scheduler_kwargs_ = \
+                    self.scheduler_kwargs_ if self.scheduler_kwargs_ else {}
             else:
-                self.scheduler_kwargs_ = self.scheduler_kwargs_
+                if self.scheduler_kwargs_ is None:
+                    if self.scheduler_fn_ == 'step_lr':
+                        self.scheduler_kwargs_ = {
+                            'step_size': self.num_epochs_ // 4
+                        }
+                    elif self.scheduler_fn_ == 'cosine_lr':
+                        self.scheduler_kwargs_ = {
+                            'T_max': self.num_epochs_
+                        }
+                    else:
+                        self.scheduler_kwargs_ = {}
+                else:
+                    self.scheduler_kwargs_ = self.scheduler_kwargs_
 
-            self.scheduler_fn_ = self._schedulers_[self.scheduler_fn_]
+                self.scheduler_fn_ = self._schedulers_[self.scheduler_fn_]
 
-        self.scheduler_ = self.scheduler_fn_(
-            self.optimizer_,
-            **self.scheduler_kwargs_
-        )
+            self.scheduler_ = self.scheduler_fn_(
+                self.optimizer_,
+                **self.scheduler_kwargs_
+            )
 
         return self
 
@@ -559,10 +564,11 @@ class Explorer(SLMixin):
             self.net_.parameters(),
             **self.optimizer_kwargs_
         )
-        self.scheduler_ = self.scheduler_fn_(
-            self.optimizer_,
-            **self.scheduler_kwargs_
-        )
+        if self.scheduler_fn_:
+            self.scheduler_ = self.scheduler_fn_(
+                self.optimizer_,
+                **self.scheduler_kwargs_
+            )
         if self.earlystopping_fn_:
             self.earlystopping_ = self.earlystopping_fn_(
                 **self.earlystopping_kwargs_
@@ -620,8 +626,8 @@ class Explorer(SLMixin):
             loss.backward()
             self.optimizer_.step()
 
-        self.scheduler_.step()
-
+        if self.scheduler_:
+            self.scheduler_.step()
         if self.earlystopping_:
             self.earlystopping_.step()
 

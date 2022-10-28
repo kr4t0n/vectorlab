@@ -67,11 +67,8 @@ def test_find_foward_transform(k, method, rerun):
             success_number += 1
 
     print(
-        'Method: {}, node size: {}, success_rate: {:.2%}'.format(
-            method,
-            k,
-            success_number * 1.0 / rerun
-        )
+        f'Method: {method}, node size: {k}, '
+        f'success_rate: {success_number * 1.0 / rerun:.2%}'
     )
 
 
@@ -126,11 +123,8 @@ def test_find_backward_transform(k, method, rerun):
             success_number += 1
 
     print(
-        'Method: {}, node size: {}, success_rate: {:.2%}'.format(
-            method,
-            k,
-            success_number * 1.0 / rerun
-        )
+        f'Method: {method}, node size: {k}, '
+        f'success_rate: {success_number * 1.0 / rerun:.2%}'
     )
 
 

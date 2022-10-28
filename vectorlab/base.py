@@ -108,9 +108,7 @@ class KVNode(SLMixin):
 
     def __repr__(self):
 
-        print_str = 'Key: {}, Value: {}'.format(
-            self.key_, self.value_
-        )
+        print_str = f'Key: {self.key_}, Value: {self.value_}'
 
         return print_str
 
@@ -164,11 +162,9 @@ class Stack(SLMixin):
         if self.dtype_ is not None:
             if not isinstance(element, self.dtype_):
                 raise ValueError(
-                    'New element type is not allowed. '
-                    'New element type is {}, allowed type is {}'.format(
-                        type(element),
-                        self.dtype_
-                    )
+                    f'New element type is not allowed. '
+                    f'New element type is {type(element)}, '
+                    f'allowed type is {self.dtype_}.'
                 )
 
         self.stack_.append(element)
@@ -264,11 +260,9 @@ class Queue(SLMixin):
         if self.dtype_ is not None:
             if not isinstance(element, self.dtype_):
                 raise ValueError(
-                    'New element type is not allowed. '
-                    'New element type is {}, allowed type is {}'.format(
-                        type(element),
-                        self.dtype_
-                    )
+                    f'New element type is not allowed. '
+                    f'New element type is {type(element)}, '
+                    f'allowed type is {self.dtype_}.'
                 )
 
         self.queue_.append(element)
@@ -352,13 +346,10 @@ class Accumulator(SLMixin):
 
         if attrs is not None and len(attrs) != n_attrs:
             raise ValueError(
-                'The number of attributes and the number of provided '
-                'attribute names are not equal. The number of attributes '
-                'is {} and the number of provided attribute '
-                'names is {}.'.format(
-                    n_attrs,
-                    len(attrs)
-                )
+                f'The number of attributes and the number of provided '
+                f'attribute names are not equal. The number of attributes '
+                f'is {n_attrs} and the number of provided attribute '
+                f'names is {len(attrs)}.'
             )
 
         self.n_attrs_ = n_attrs
@@ -415,13 +406,10 @@ class Accumulator(SLMixin):
 
             if self.attrs_stats_.shape != attrs_stats.shape:
                 raise ValueError(
-                    'The number of adding attributes statistics is different '
-                    'from the number of elements initialized. '
-                    'The accumulator contains {} elements '
-                    'but provided with {}.'.format(
-                        self.n_attrs_,
-                        attrs_stats.shape[0]
-                    )
+                    f'The number of adding attributes statistics is different '
+                    f'from the number of elements initialized. '
+                    f'The accumulator contains {self.n_attrs_} elements '
+                    f'but provided with {attrs_stats.shape[0]}.'
                 )
 
             self.attrs_stats_ += attrs_stats

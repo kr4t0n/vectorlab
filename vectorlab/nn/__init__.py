@@ -1,2 +1,2 @@
 from .explorer import *
-from ._earlystopping import *
+from .resolver import *

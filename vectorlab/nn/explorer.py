@@ -12,7 +12,9 @@ from torch.utils.tensorboard import SummaryWriter
 from torch_geometric.data import Data, Batch
 
 from ..base import SLMixin, Accumulator
-from ._earlystopping import EarlyStopping
+from .resolver import (
+    optimizer_resolver, scheduler_resolver, earlystopping_resolver
+)
 from ..data.dataloader._torch_dataloader import (
     PadSeqDataLoader, PadSeqsDataLoader
 )
@@ -129,8 +131,6 @@ class Explorer(SLMixin):
         The tuple of net_input in indices.
     loss_input_ind_ : tuple
         The tuple of loss_input in indices.
-    _optimizers_ : dict
-        The dictionary stored different optimizers.
     optimizer_fn_ : torch.optim.Optimizer
         The given callable function to initialize corresponding optimizer.
     learning_rate_ : float
@@ -141,16 +141,12 @@ class Explorer(SLMixin):
         The extra arguments for initialize the optimizer.
     optimizer_ : torch.optim.Optimizer
         The optimizer used to train the model.
-    _schedulers_ : dict
-        The dictionary stored different schedulers.
     scheduler_fn_ : torch.optim.lr_scheduler
         The given callable function to initialize corresponding scheduler.
     scheduler_kwargs_ : dict
         The extra arguments for initialize the scheduler.
     scheduler_ : torch.optim.lr_scheduler
         The scheduler to decay the learning rate of optimizer.
-    _earlystoppings_ : dict
-        The dictionary stored different earlystoppings.
     earlystopping_fn_ : callabe
         The earlystopping to be used to avoid overfitting.
     earlystopping_metric_ : str
@@ -215,30 +211,6 @@ class Explorer(SLMixin):
         )
     }
 
-    _optimizers_ = {
-        'adam': torch.optim.Adam,
-        'adamw': torch.optim.AdamW,
-        'sgd': torch.optim.SGD
-    }
-
-    _schedulers_ = {
-        'step_lr': torch.optim.lr_scheduler.StepLR,
-        'cosine_lr': torch.optim.lr_scheduler.CosineAnnealingLR
-    }
-
-    _earlystoppings_ = {
-        'asc_es': lambda *args, **kwargs: EarlyStopping(
-            *args,
-            metric_type='ascending',
-            **kwargs
-        ),
-        'desc_es': lambda *args, **kwargs: EarlyStopping(
-            *args,
-            metric_type='descending',
-            **kwargs
-        )
-    }
-
     def __init__(self,
                  net, loss_fn,
                  batch_input, net_input, loss_input,
@@ -249,7 +221,7 @@ class Explorer(SLMixin):
                  test_loader_fn=None, test_loader_kwargs=None,
                  optimizer_fn='adamw',
                  learning_rate=0.1, weight_decay=0, optimizer_kwargs=None,
-                 scheduler_fn='cosine_lr',
+                 scheduler_fn='cosine_annealing_lr',
                  scheduler_kwargs=None,
                  earlystopping_fn='desc_es',
                  earlystopping_metric='loss', earlystopping_kwargs=None,
@@ -395,6 +367,8 @@ class Explorer(SLMixin):
             Return itself.
         """
 
+        self.optimizer_fn_ = optimizer_resolver(self.optimizer_fn_)
+
         self.optimizer_kwargs_ = \
             self.optimizer_kwargs_ if self.optimizer_kwargs_ else {}
 
@@ -405,9 +379,6 @@ class Explorer(SLMixin):
                 'weight_decay': self.weight_decay_
             }
         )
-
-        if not callable(self.optimizer_fn_):
-            self.optimizer_fn_ = self._optimizers_[self.optimizer_fn_]
 
         self.optimizer_ = self.optimizer_fn_(
             self.net_.parameters(),
@@ -425,31 +396,27 @@ class Explorer(SLMixin):
             Return itself.
         """
 
+        self.scheduler_fn_ = scheduler_resolver(self.scheduler_fn_)
+
+        if self.scheduler_kwargs_ is None:
+            if self.scheduler_fn_ == \
+                    torch.optim.lr_scheduler.StepLR:
+                self.scheduler_kwargs_ = {
+                    'step_size': self.num_epochs_ // 4
+                }
+            elif self.scheduler_fn_ == \
+                    torch.optim.lr_scheduler.CosineAnnealingLR:
+                self.scheduler_kwargs_ = {
+                    'T_max': self.num_epochs_
+                }
+            else:
+                self.scheduler_kwargs_ = {}
+        else:
+            self.scheduler_kwargs_ = self.scheduler_kwargs_
+
         if self.scheduler_fn_ is None:
-            self.scheduler_kwargs_ = \
-                self.scheduler_kwargs_ if self.scheduler_kwargs_ else {}
             self.scheduler_ = None
         else:
-            if callable(self.scheduler_fn_):
-                self.scheduler_kwargs_ = \
-                    self.scheduler_kwargs_ if self.scheduler_kwargs_ else {}
-            else:
-                if self.scheduler_kwargs_ is None:
-                    if self.scheduler_fn_ == 'step_lr':
-                        self.scheduler_kwargs_ = {
-                            'step_size': self.num_epochs_ // 4
-                        }
-                    elif self.scheduler_fn_ == 'cosine_lr':
-                        self.scheduler_kwargs_ = {
-                            'T_max': self.num_epochs_
-                        }
-                    else:
-                        self.scheduler_kwargs_ = {}
-                else:
-                    self.scheduler_kwargs_ = self.scheduler_kwargs_
-
-                self.scheduler_fn_ = self._schedulers_[self.scheduler_fn_]
-
             self.scheduler_ = self.scheduler_fn_(
                 self.optimizer_,
                 **self.scheduler_kwargs_
@@ -466,16 +433,14 @@ class Explorer(SLMixin):
             Return itself.
         """
 
+        self.earlystopping_fn_ = earlystopping_resolver(self.earlystopping_fn_)
+
         self.earlystopping_kwargs_ = \
             self.earlystopping_kwargs_ if self.earlystopping_kwargs_ else {}
 
         if self.earlystopping_fn_ is None:
             self.earlystopping_ = None
         else:
-            if not callable(self.earlystopping_fn_):
-                self.earlystopping_fn_ = \
-                    self._earlystoppings_[self.earlystopping_fn_]
-
             self.earlystopping_ = self.earlystopping_fn_(
                 **self.earlystopping_kwargs_
             )

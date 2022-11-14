@@ -4,7 +4,7 @@ from ..base import SLMixin
 from ..utils._check import check_valid_option
 
 
-class EarlyStopping(SLMixin):
+class _EarlyStopping(SLMixin):
     r"""The EarlyStopping class to stop training in advance.
 
     The EarlyStopping is a form of regularization used to avoid
@@ -12,6 +12,8 @@ class EarlyStopping(SLMixin):
 
     Parameters
     ----------
+    metric_type : str
+        The type of metric, ascending or descending.
     warmup : int
         The warmup iteration for training.
     laziness : int
@@ -19,14 +21,11 @@ class EarlyStopping(SLMixin):
         it to observe few more iterations.
     tolerance : float
         Tolerance allow the metric to fluctuate in a limited range.
-    metric_type : str
-        The type of metric, ascending or descending.
     """
 
-    def __init__(self,
+    def __init__(self, metric_type,
                  warmup=20, laziness=4,
-                 tolerance=1e-3,
-                 metric_type='descending'):
+                 tolerance=1e-3):
 
         super().__init__()
 
@@ -117,3 +116,57 @@ class EarlyStopping(SLMixin):
             return True
 
         return False
+
+
+class AscES(_EarlyStopping):
+    r"""The ascending type of EarlyStopping class to stop training in advance.
+
+    Parameters
+    ----------
+    warmup : int
+        The warmup iteration for training.
+    laziness : int
+        When certain performance stop improving, laziness allow
+        it to observe few more iterations.
+    tolerance : float
+        Tolerance allow the metric to fluctuate in a limited range.
+    """
+
+    def __init__(self,
+                 warmup=20, laziness=4,
+                 tolerance=1e-3):
+
+        super(AscES, self).__init__(
+            metric_type='ascending',
+            warmup=warmup, laziness=laziness,
+            tolerance=tolerance
+        )
+
+        return
+
+
+class DescES(_EarlyStopping):
+    r"""The descending type of EarlyStopping class to stop training in advance.
+
+    Parameters
+    ----------
+    warmup : int
+        The warmup iteration for training.
+    laziness : int
+        When certain performance stop improving, laziness allow
+        it to observe few more iterations.
+    tolerance : float
+        Tolerance allow the metric to fluctuate in a limited range.
+    """
+
+    def __init__(self,
+                 warmup=20, laziness=4,
+                 tolerance=1e-3):
+
+        super(DescES, self).__init__(
+            metric_type='descending',
+            warmup=warmup, laziness=laziness,
+            tolerance=tolerance
+        )
+
+        return

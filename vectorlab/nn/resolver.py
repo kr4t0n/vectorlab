@@ -1,6 +1,6 @@
 import torch
 
-from ._earlystopping import EarlyStopping
+from . import _earlystopping
 
 
 def normalize_string(s):
@@ -149,18 +149,13 @@ def earlystopping_resolver(query):
         The resolved earlystopping class.
     """
 
-    earlystoppings = []
-    earlystoppings_dict = {
-        'asc_es': lambda *args, **kwargs: EarlyStopping(
-            *args,
-            metric_type='ascending',
-            **kwargs
-        ),
-        'desc_es': lambda *args, **kwargs: EarlyStopping(
-            *args,
-            metric_type='descending',
-            **kwargs
-        )
-    }
+    base_class = _earlystopping._EarlyStopping  # noqa
+
+    earlystoppings = [
+        es
+        for es in vars(_earlystopping).values()
+        if isinstance(es, type) and issubclass(es, base_class)
+    ]
+    earlystoppings_dict = {}
 
     return resolver(query, earlystoppings, earlystoppings_dict)

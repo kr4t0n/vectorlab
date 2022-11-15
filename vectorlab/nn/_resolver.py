@@ -2,6 +2,7 @@ import torch
 import torch_geometric
 
 from . import _earlystopping
+from ..data import dataloader as _dataloader
 
 
 def normalize_string(s):
@@ -73,6 +74,35 @@ def resolver(query, classes, classes_dict):
         f'Variable resolver option does not match the constraint. '
         f'Potential options are {classes_repr}, your option is {query}.'
     )
+
+
+def dataloader_resolver(query):
+    r"""A dataloader resolver
+
+    List all dataloaders supported by vectorlab.data.dataloader and
+    find corresponding dataloader.
+
+    Parameters
+    ----------
+    query : str
+        Input dataloader query.
+
+    Returns
+    -------
+    torch.utils.data.DataLoader
+        The resolved dataloader class.
+    """
+
+    base_class = torch.utils.data.DataLoader
+
+    dataloaders = [
+        dataloader
+        for dataloader in vars(_dataloader).values()
+        if isinstance(dataloader, type) and issubclass(dataloader, base_class)
+    ]
+    dataloaders_dict = {}
+
+    return resolver(query, dataloaders, dataloaders_dict)
 
 
 def optimizer_resolver(query):

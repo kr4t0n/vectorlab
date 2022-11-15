@@ -1,2 +1,2 @@
 from .explorer import *
-from .resolver import *
+from ._resolver import *

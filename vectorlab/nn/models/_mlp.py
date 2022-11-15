@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 
 from ...utils._check import check_valid_int
-from ..resolver import activation_resolver, nn_normalization_resolver
+from .._resolver import activation_resolver, nn_normalization_resolver
 
 
 class MLP(torch.nn.Module):

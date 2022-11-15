@@ -12,7 +12,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torch_geometric.data import Data, Batch
 
 from ..base import SLMixin, Accumulator
-from .resolver import (
+from ._resolver import (
     optimizer_resolver, scheduler_resolver, earlystopping_resolver
 )
 from ..data.dataloader._torch_dataloader import (

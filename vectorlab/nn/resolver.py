@@ -1,4 +1,5 @@
 import torch
+import torch_geometric
 
 from . import _earlystopping
 
@@ -212,6 +213,35 @@ def nn_normalization_resolver(query):
     normalizations = [
         norm
         for norm in vars(torch.nn.modules.batchnorm).values()
+        if isinstance(norm, type) and issubclass(norm, base_class)
+    ]
+    normalizations_dict = {}
+
+    return resolver(query, normalizations, normalizations_dict)
+
+
+def gnn_normalization_resolver(query):
+    r"""A gnn batch normalization resolver.
+
+    List all batch normalization supported by torch_geometric.nn.norm and
+    find corresponding batch normalization.
+
+    Parameters
+    ----------
+    query : str
+        Input gnn batch normalization query.
+
+    Returns
+    -------
+    torch.nn.Module
+        The resolved gnn batch normalization class.
+    """
+
+    base_class = torch.nn.Module
+
+    normalizations = [
+        norm
+        for norm in vars(torch_geometric.nn.norm).values()
         if isinstance(norm, type) and issubclass(norm, base_class)
     ]
     normalizations_dict = {}

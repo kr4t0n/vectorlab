@@ -87,7 +87,7 @@ def optimizer_resolver(query):
 
     Returns
     -------
-    object
+    torch.optim.Optimizer
         The resolved optimizer class.
     """
 
@@ -116,7 +116,7 @@ def scheduler_resolver(query):
 
     Returns
     -------
-    object
+    torch.optim.lr_scheduler._LRScheduler
         The resolved scheduler class.
     """
 
@@ -145,7 +145,7 @@ def earlystopping_resolver(query):
 
     Returns
     -------
-    object
+    _earlystopping._EarlyStopping
         The resolved earlystopping class.
     """
 
@@ -159,3 +159,61 @@ def earlystopping_resolver(query):
     earlystoppings_dict = {}
 
     return resolver(query, earlystoppings, earlystoppings_dict)
+
+
+def activation_resolver(query):
+    r"""An activation resolver.
+
+    List all activations supported by torch.nn.modules.activation and
+    find corresponding activation.
+
+    Parameters
+    ----------
+    query : str
+        Input activation query.
+
+    Returns
+    -------
+    torch.nn.Module
+        The resolved activation class.
+    """
+
+    base_class = torch.nn.Module
+
+    activations = [
+        activation
+        for activation in vars(torch.nn.modules.activation).values()
+        if isinstance(activation, type) and issubclass(activation, base_class)
+    ]
+    activations_dict = {}
+
+    return resolver(query, activations, activations_dict)
+
+
+def nn_normalization_resolver(query):
+    r"""A nn batch normalization resolver.
+
+    List all batch normalizations supported by torch.nn.modules.batchnorm and
+    find corrresponding batch normalization.
+
+    Parameters
+    ----------
+    query : str
+        Input nn batch normalization query.
+
+    Returns
+    -------
+    torch.nn.Module
+        The resolved nn batch normalization class.
+    """
+
+    base_class = torch.nn.Module
+
+    normalizations = [
+        norm
+        for norm in vars(torch.nn.modules.batchnorm).values()
+        if isinstance(norm, type) and issubclass(norm, base_class)
+    ]
+    normalizations_dict = {}
+
+    return resolver(query, normalizations, normalizations_dict)

@@ -13,14 +13,8 @@ from torch_geometric.data import Data, Batch
 
 from ..base import SLMixin, Accumulator
 from ._resolver import (
+    dataloader_resolver,
     optimizer_resolver, scheduler_resolver, earlystopping_resolver
-)
-from ..data.dataloader._torch_dataloader import (
-    PadSeqDataLoader, PadSeqsDataLoader
-)
-from ..data.dataloader._torch_geometric_dataloader import (
-    NodeDataLoader,
-    GraphDataLoader, MaskGraphDataLoader
 )
 
 
@@ -115,8 +109,6 @@ class Explorer(SLMixin):
         The number of subprocesses to load data.
     num_epochs_ : int
         The number of epoch to train the neural network.
-    _loader_fns_ : dict
-        The dictionary stored different data loader functions.
     loader_fn_ : torch.utils.data.DataLoader, torch_geometric.loader.DataLoader
         The data loader to load the data from dataset.
     batch_input_ : list
@@ -193,30 +185,12 @@ class Explorer(SLMixin):
         network.
     """
 
-    _loader_fns_ = {
-        'nn': torch.utils.data.DataLoader,
-        'pad_seq': PadSeqDataLoader,
-        'pad_seqs': PadSeqsDataLoader,
-        'gnn_node': NodeDataLoader,
-        'gnn_graph': GraphDataLoader,
-        'gnn_zero_mask': lambda *args, **kwargs: MaskGraphDataLoader(
-            *args,
-            mask_method='zeros',
-            **kwargs
-        ),
-        'gnn_random_mask': lambda *args, **kwargs: MaskGraphDataLoader(
-            *args,
-            mask_method='random',
-            **kwargs
-        )
-    }
-
     def __init__(self,
                  net, loss_fn,
                  batch_input, net_input, loss_input,
                  k=5,
                  batch_size=32, num_workers=8, num_epochs=100,
-                 train_loader_fn='nn', train_loader_kwargs=None,
+                 train_loader_fn='dataloader', train_loader_kwargs=None,
                  valid_loader_fn=None, valid_loader_kwargs=None,
                  test_loader_fn=None, test_loader_kwargs=None,
                  optimizer_fn='adamw',
@@ -238,21 +212,21 @@ class Explorer(SLMixin):
         self.num_workers_ = int(num_workers)
         self.num_epochs_ = int(num_epochs)
 
-        self.train_loader_fn_ = self._init_loader_fn(train_loader_fn)
+        self.train_loader_fn_ = dataloader_resolver(train_loader_fn)
         self.train_loader_kwargs_ = \
             train_loader_kwargs if train_loader_kwargs else {}
 
         if valid_loader_fn is None:
             self.valid_loader_fn_ = self.train_loader_fn_
         else:
-            self.valid_loader_fn_ = self._init_loader_fn(valid_loader_fn)
+            self.valid_loader_fn_ = dataloader_resolver(valid_loader_fn)
         self.valid_loader_kwargs_ = \
             valid_loader_kwargs if valid_loader_kwargs else {}
 
         if test_loader_fn is None:
             self.test_loader_fn_ = self.train_loader_fn_
         else:
-            self.test_loader_fn_ = self._init_loader_fn(test_loader_fn)
+            self.test_loader_fn_ = dataloader_resolver(test_loader_fn)
         self.test_loader_kwargs_ = \
             test_loader_kwargs if test_loader_kwargs else {}
 
@@ -337,26 +311,6 @@ class Explorer(SLMixin):
                 self.device_ = self.devices_[0]
 
         return self
-
-    def _init_loader_fn(self, loader_fn):
-        r"""Generate corresponding data loader functions.
-
-        Parameters
-        ----------
-        loader_fn : str, callable
-            A callable data loader function or a string to generate
-            pre-defined data loader function.
-
-        Returns
-        -------
-        loader_fn : callable
-            A callable data loader function.
-        """
-
-        if callable(loader_fn):
-            return loader_fn
-        elif isinstance(loader_fn, str):
-            return self._loader_fns_[loader_fn]
 
     def _init_optimizer(self):
         r"""Initialize proper optimizer

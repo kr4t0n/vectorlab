@@ -189,7 +189,7 @@ class Explorer(SLMixin):
                  net, loss_fn,
                  batch_input, net_input, loss_input,
                  k=5,
-                 batch_size=32, num_workers=8, num_epochs=100,
+                 batch_size=32, num_workers=0, num_epochs=100,
                  train_loader_fn='dataloader', train_loader_kwargs=None,
                  valid_loader_fn=None, valid_loader_kwargs=None,
                  test_loader_fn=None, test_loader_kwargs=None,

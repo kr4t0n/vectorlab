@@ -330,9 +330,9 @@ class LSTMEncoder(BasicEncoder):
             The hidden and cell states.
         """
 
-        _, (h, c) = self.encoder_(x)
+        _, h = self.encoder_(x)
 
-        return h, c
+        return h
 
     def forward_latent(self, x):
         r"""The forward process to obtain latent samples.

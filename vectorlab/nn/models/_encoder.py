@@ -151,6 +151,24 @@ class MLPEncoder(BasicEncoder):
 
         return x
 
+    def forward_latent(self, x):
+        r"""The forward process to obtain latent samples.
+
+        Parameters
+        ----------
+        x : tensor
+            The input samples.
+
+        Returns
+        -------
+        tensor
+            The latent samples.
+        """
+
+        x = self.encoder_.forward_latent(x)
+
+        return x
+
 
 class BasicVarEncoder(BasicEncoder):
     r"""An abstract basic variational encoder class.

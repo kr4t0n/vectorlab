@@ -165,7 +165,7 @@ class MLPEncoder(BasicEncoder):
             The latent samples.
         """
 
-        x = self.encoder_.forward_latent(x)
+        x = self.encoder_(x)
 
         return x
 

@@ -717,7 +717,7 @@ class Explorer(SLMixin):
 
         return self._loss_evaluate(loader)
 
-    def _inference(self, loader, verbose=False):
+    def _inference(self, loader, verbose=0):
         r"""This is the abstract inference method.
 
         This is the abstract inference method that should be implemented in
@@ -729,8 +729,11 @@ class Explorer(SLMixin):
         loader : torch.utils.data.DataLoader
             The data loader containing validation data to evaluate the trained
             neural network.
-        verbose : bool, optional
+        verbose : int, optional
             If show the progress of inference process.
+            0 : quite mode
+            1 : show basic summary
+            2 : show progress bar of inferring all data
 
         Returns
         -------
@@ -744,7 +747,7 @@ class Explorer(SLMixin):
 
         with torch.no_grad():
 
-            for batch in tqdm(loader, ascii=True, disable=not verbose):
+            for batch in tqdm(loader, ascii=True, disable=(verbose <= 1)):
 
                 if not isinstance(batch, (tuple, list)):
                     batch = (batch, )
@@ -763,7 +766,7 @@ class Explorer(SLMixin):
 
         return outputs
 
-    def _latent(self, loader, verbose=False):
+    def _latent(self, loader, verbose=0):
         r"""This is the abstract latent method.
 
         This is the abstract getting latent method that should be implemented
@@ -775,8 +778,11 @@ class Explorer(SLMixin):
         loader : torch.utils.data.DataLoader
             The data loader containing validation data to evaluate the trained
             neural network.
-        verbose : bool, optional
+        verbose : int, optional
             If show the progress of inference process.
+            0 : quite mode
+            1 : show basic summary
+            2 : show progress bar of inferring all data
 
         Returns
         -------
@@ -790,7 +796,7 @@ class Explorer(SLMixin):
 
         with torch.no_grad():
 
-            for batch in tqdm(loader, ascii=True, disable=not verbose):
+            for batch in tqdm(loader, ascii=True, disable=(verbose <= 1)):
 
                 if not isinstance(batch, (tuple, list)):
                     batch = (batch, )
@@ -813,7 +819,7 @@ class Explorer(SLMixin):
         self,
         train_dataset, valid_dataset=None,
         save_best=False, save_last=True,
-        verbose=False
+        verbose=0
     ):
         r"""Train the neural network for once.
 
@@ -833,8 +839,11 @@ class Explorer(SLMixin):
             If save the model parameters with best loss.
         save_last : bool, optional
             If save the last model parameters.
-        verbose : bool, optional
+        verbose : int, optional
             If show the progress of training process.
+            0 : quite mode
+            1 : show basic summary
+            2 : show progress bar of inferring all data
 
         Returns
         -------
@@ -884,14 +893,25 @@ class Explorer(SLMixin):
                 **self.valid_loader_kwargs_
             )
 
-        for epoch in range(self.num_epochs_):
+        pbar = tqdm(
+            range(self.num_epochs_),
+            ascii=True,
+            disable=(verbose <= 1)
+        )
+        for epoch in pbar:
             self._train(train_loader)
 
-            if self.writer_ or self.earlystopping_ or save_best:
+            if self.writer_ or self.earlystopping_ or save_best or verbose > 1:
                 train_metrics_ = self._evaluate(train_loader)
+                loss_ = train_metrics_['loss']
 
                 if valid_dataset is not None:
                     valid_metrics_ = self._evaluate(valid_loader)
+                    loss_ = valid_metrics_['loss']
+
+                pbar.set_description(
+                    f'Epoch: {epoch:03d}, Loss : {loss_:.3f}'
+                )
 
             if self.earlystopping_:
                 if valid_dataset is None:
@@ -962,7 +982,7 @@ class Explorer(SLMixin):
 
         return self
 
-    def k_fold_train(self, train_dataset, verbose=False):
+    def k_fold_train(self, train_dataset, verbose=0):
         r"""Trained the neural network using k fold cross validation.
 
         Train the neural network using the pre-defined arguments with
@@ -974,8 +994,11 @@ class Explorer(SLMixin):
         ----------
         train_dataset : torch.utils.data.Dataset
             The training dataset.
-        verbose : bool, optional
+        verbose : int, optional
             If show the progress of k-fold training process.
+            0 : quite mode
+            1 : show basic summary
+            2 : show progress bar of inferring all data
 
         Returns
         -------
@@ -1034,12 +1057,22 @@ class Explorer(SLMixin):
                 **self.valid_loader_kwargs_
             )
 
-            for epoch in range(self.num_epochs_):
+            pbar = tqdm(
+                range(self.num_epochs_),
+                ascii=True,
+                disable=(verbose <= 1)
+            )
+            for epoch in pbar:
                 self._train(k_train_dataloader)
 
-                if self.writer_ or self.earlystopping_:
+                if self.writer_ or self.earlystopping_ or verbose > 1:
                     k_train_metrics_ = self._evaluate(k_train_dataloader)
                     k_valid_metrics_ = self._evaluate(k_valid_dataloader)
+
+                    loss_ = k_valid_metrics_['loss']
+                    pbar.set_description(
+                        f'Epoch: {epoch:03d}, Loss : {loss_:.3f}'
+                    )
 
                 if self.earlystopping_:
                     self.earlystopping_.record_metric(
@@ -1104,7 +1137,7 @@ class Explorer(SLMixin):
 
         return self
 
-    def inference(self, test_dataset, verbose=False):
+    def inference(self, test_dataset, verbose=0):
         r"""Infer the result of test dataset using the trained
         neural network.
 
@@ -1116,8 +1149,11 @@ class Explorer(SLMixin):
         ----------
         test_dataset : torch.utils.data.Dataset
             The test dataset.
-        verbose : bool, optional
+        verbose : int, optional
             If show the progress of inference process.
+            0 : quite mode
+            1 : show basic summary
+            2 : show progress bar of inferring all data
 
         Returns
         -------
@@ -1146,7 +1182,7 @@ class Explorer(SLMixin):
 
         return self.outputs_
 
-    def latent(self, test_dataset, verbose=False):
+    def latent(self, test_dataset, verbose=0):
         r"""Getting the latent representation of test dataset using
         the trained neural network.
 
@@ -1158,8 +1194,11 @@ class Explorer(SLMixin):
         ----------
         test_dataset : torch.utils.data.Dataset
             The test dataset.
-        verbose : bool, optional
+        verbose : int, optional
             If show the progress of inference process.
+            0 : quite mode
+            1 : show basic summary
+            2 : show progress bar of inferring all data
 
         Returns
         -------
@@ -1270,7 +1309,7 @@ class Explorer(SLMixin):
 
         return self
 
-    def get_summary(self, dataset, verbose=False):
+    def get_summary(self, dataset, verbose=1):
         r"""Get a summary of neural network to be investigated.
 
         This function will retrieve the inferring speed, as items per
@@ -1282,8 +1321,11 @@ class Explorer(SLMixin):
         ----------
         dataset : torch.utils.data.Dataset
             The dataset used to get summary report.
-        verbose : bool, optional
-            If show the progress of inference process.
+        verbose : int, optional
+            If show the progress of get summary process.
+            0 : quite mode
+            1 : show basic summary
+            2 : show progress bar of inferring all data
 
         Returns
         -------
@@ -1313,7 +1355,7 @@ class Explorer(SLMixin):
         )
 
         start_ts = time.time()
-        for batch in tqdm(loader, ascii=True, disable=not verbose):
+        for batch in tqdm(loader, ascii=True, disable=(verbose <= 1)):
 
             if not isinstance(batch, (tuple, list)):
                 batch = (batch, )

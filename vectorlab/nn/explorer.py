@@ -443,6 +443,37 @@ class Explorer(SLMixin):
 
         return self
 
+    def _generate_input(self, batch):
+        r"""Generate net input and loss input from giver batch.
+
+        Parameters
+        ----------
+        batch : tuple
+            Tuple of tensors to be a batch.
+
+        Returns
+        -------
+        net_input : tuple
+            Tuple of tensors to be a net input.
+        loss_input : tuple
+            Tuple of tensors to be a loss input.
+        """
+
+        net_input = tuple(
+            batch[ind[0]].to(self.device_)
+            if len(ind) == 1
+            else getattr(batch[ind[0]], ind[1]).to(self.device_)
+            for ind in self.net_input_ind_
+        )
+        loss_input = tuple(
+            batch[ind[0]].to(self.device_)
+            if len(ind) == 1
+            else getattr(batch[ind[0]], ind[1]).to(self.device_)
+            for ind in self.loss_input_ind_
+        )
+
+        return net_input, loss_input
+
     def _init_parameters_dict_(self, parameters_dict):
         r"""Generate the parameters dictionary that initialized
         the explorer.
@@ -529,28 +560,14 @@ class Explorer(SLMixin):
             if not isinstance(batch, (tuple, list)):
                 batch = (batch, )
 
-            net_input = tuple(
-                batch[ind[0]].to(self.device_)
-                if len(ind) == 1
-                else getattr(batch[ind[0]], ind[1]).to(self.device_)
-                for ind in self.net_input_ind_
-            )
-            loss_input = tuple(
-                batch[ind[0]].to(self.device_)
-                if len(ind) == 1
-                else getattr(batch[ind[0]], ind[1]).to(self.device_)
-                for ind in self.loss_input_ind_
-            )
+            net_input, loss_input = self._generate_input(batch)
 
             self.optimizer_.zero_grad()
 
             output = self.net_(*net_input)
             output = output if isinstance(output, tuple) else (output, )
 
-            loss = self.loss_fn_(
-                *output,
-                *loss_input
-            )
+            loss = self.loss_fn_(*output, *loss_input)
             loss.backward()
             self.optimizer_.step()
 
@@ -597,26 +614,12 @@ class Explorer(SLMixin):
                 elif isinstance(batch[0], Batch):
                     n_samples = batch[0].num_graphs
 
-                net_input = tuple(
-                    batch[ind[0]].to(self.device_)
-                    if len(ind) == 1
-                    else getattr(batch[ind[0]], ind[1]).to(self.device_)
-                    for ind in self.net_input_ind_
-                )
-                loss_input = tuple(
-                    batch[ind[0]].to(self.device_)
-                    if len(ind) == 1
-                    else getattr(batch[ind[0]], ind[1]).to(self.device_)
-                    for ind in self.loss_input_ind_
-                )
+                net_input, loss_input = self._generate_input(batch)
 
                 output = self.net_(*net_input)
                 output = output if isinstance(output, tuple) else (output, )
 
-                loss = self.loss_fn_(
-                    *output,
-                    *loss_input
-                ).item()
+                loss = self.loss_fn_(*output, *loss_input).item()
                 accumulator.add(
                     {
                         'loss': loss * n_samples,
@@ -668,18 +671,7 @@ class Explorer(SLMixin):
                 elif isinstance(batch[0], Batch):
                     n_samples = batch[0].num_graphs
 
-                net_input = tuple(
-                    batch[ind[0]].to(self.device_)
-                    if len(ind) == 1
-                    else getattr(batch[ind[0]], ind[1]).to(self.device_)
-                    for ind in self.net_input_ind_
-                )
-                loss_input = tuple(
-                    batch[ind[0]].to(self.device_)
-                    if len(ind) == 1
-                    else getattr(batch[ind[0]], ind[1]).to(self.device_)
-                    for ind in self.loss_input_ind_
-                )
+                net_input, loss_input = self._generate_input(batch)
 
                 y_hat = self.net_(*net_input)
 
@@ -752,12 +744,7 @@ class Explorer(SLMixin):
                 if not isinstance(batch, (tuple, list)):
                     batch = (batch, )
 
-                net_input = tuple(
-                    batch[ind[0]].to(self.device_)
-                    if len(ind) == 1
-                    else getattr(batch[ind[0]], ind[1]).to(self.device_)
-                    for ind in self.net_input_ind_
-                )
+                net_input, _ = self._generate_input(batch)
 
                 output = self.net_(*net_input)
                 outputs.append(output.detach().cpu().tolist())
@@ -801,12 +788,7 @@ class Explorer(SLMixin):
                 if not isinstance(batch, (tuple, list)):
                     batch = (batch, )
 
-                net_input = tuple(
-                    batch[ind[0]].to(self.device_)
-                    if len(ind) == 1
-                    else getattr(batch[ind[0]], ind[1]).to(self.device_)
-                    for ind in self.net_input_ind_
-                )
+                net_input, _ = self._generate_input(batch)
 
                 output = self.net_.forward_latent(*net_input)
                 outputs.append(output.detach().cpu().tolist())
@@ -1358,12 +1340,11 @@ class Explorer(SLMixin):
         )
 
         sample_batch = next(iter(loader))
-        sample_net_input = tuple(
-            sample_batch[ind[0]].to(self.device_)
-            if len(ind) == 1
-            else getattr(sample_batch[ind[0]], ind[1]).to(self.device_)
-            for ind in self.net_input_ind_
-        )
+
+        if not isinstance(sample_batch, (tuple, list)):
+            sample_batch = (sample_batch, )
+
+        sample_net_input, _ = self._generate_input(sample_batch)
 
         start_ts = time.time()
         for batch in tqdm(loader, ascii=True, disable=(verbose <= 1)):
@@ -1371,12 +1352,7 @@ class Explorer(SLMixin):
             if not isinstance(batch, (tuple, list)):
                 batch = (batch, )
 
-            net_input = tuple(
-                batch[ind[0]].to(self.device_)
-                if len(ind) == 1
-                else getattr(batch[ind[0]], ind[1]).to(self.device_)
-                for ind in self.net_input_ind_
-            )
+            net_input, _ = self._generate_input(batch)
 
             self.net_(*net_input)
         end_ts = time.time()

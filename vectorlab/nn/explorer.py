@@ -903,15 +903,23 @@ class Explorer(SLMixin):
 
             if self.writer_ or self.earlystopping_ or save_best or verbose > 1:
                 train_metrics_ = self._evaluate(train_loader)
-                loss_ = train_metrics_['loss']
+                metric_repr_ = ', '.join(
+                    [
+                        f'{key}: {value:.3f}'
+                        for key, value in train_metrics_.items()
+                    ]
+                )
 
                 if valid_dataset is not None:
                     valid_metrics_ = self._evaluate(valid_loader)
-                    loss_ = valid_metrics_['loss']
+                    metric_repr_ = ', '.join(
+                        [
+                            f'{key}: {value:.3f}'
+                            for key, value in train_metrics_.items()
+                        ]
+                    )
 
-                pbar.set_description(
-                    f'Epoch: {epoch:03d}, Loss : {loss_:.3f}'
-                )
+                pbar.set_description(f'Epoch: {epoch:03d}, {metric_repr_}')
 
             if self.earlystopping_:
                 if valid_dataset is None:
@@ -1069,10 +1077,13 @@ class Explorer(SLMixin):
                     k_train_metrics_ = self._evaluate(k_train_dataloader)
                     k_valid_metrics_ = self._evaluate(k_valid_dataloader)
 
-                    loss_ = k_valid_metrics_['loss']
-                    pbar.set_description(
-                        f'Epoch: {epoch:03d}, Loss : {loss_:.3f}'
+                    metric_repr_ = ', '.join(
+                        [
+                            f'{key}: {value:.3f}'
+                            for key, value in k_valid_metrics_.items()
+                        ]
                     )
+                    pbar.set_description(f'Epoch: {epoch:03d}, {metric_repr_}')
 
                 if self.earlystopping_:
                     self.earlystopping_.record_metric(

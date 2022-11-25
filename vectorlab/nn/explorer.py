@@ -856,7 +856,8 @@ class Explorer(SLMixin):
                 )
 
         self.net_.to(self.device_)
-        self.loss_fn_.to(self.device_)
+        if hasattr(self.loss_fn_, 'to'):
+            self.loss_fn_.to(self.device_)
 
         train_loader = self.train_loader_fn_(
             train_dataset,
@@ -1027,7 +1028,8 @@ class Explorer(SLMixin):
             self.reset()
 
             self.net_.to(self.device_)
-            self.loss_fn_.to(self.device_)
+            if hasattr(self.loss_fn_, 'to'):
+                self.loss_fn_.to(self.device_)
 
             k_train_dataset = Subset(train_dataset, train_index)
             k_valid_dataset = Subset(train_dataset, valid_index)
@@ -1161,7 +1163,6 @@ class Explorer(SLMixin):
             )
 
         self.net_.to(self.device_)
-        self.loss_fn_.to(self.device_)
 
         test_dataloader = self.test_loader_fn_(
             test_dataset,
@@ -1206,7 +1207,6 @@ class Explorer(SLMixin):
             )
 
         self.net_.to(self.device_)
-        self.loss_fn_.to(self.device_)
 
         test_dataloader = self.test_loader_fn_(
             test_dataset,
@@ -1327,7 +1327,6 @@ class Explorer(SLMixin):
         """
 
         self.net_.to(self.device_)
-        self.loss_fn_.to(self.device_)
 
         self.net_.eval()
 

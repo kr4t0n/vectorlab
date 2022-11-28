@@ -1,5 +1,7 @@
 import torch
 
+from ..functional import kl_with_std_norm
+
 
 class AE(torch.nn.Module):
     r"""An Auto-Encoder (AE) is a type of artificial
@@ -124,7 +126,7 @@ class AE(torch.nn.Module):
         return
 
 
-class VAE(torch.nn.Module):
+class VAE(AE):
     r"""Variational Auto-Encoder (VAE) is generative model, akin to
     generative adversarial networks. VAEs are directed probabilistic
     graphical models (DPGM) whose posterior is approximated by a
@@ -182,16 +184,7 @@ class VAE(torch.nn.Module):
         Whether to use sigmoid function over the outputs or not.
     """
 
-    def __init__(self, encoder, decoder, sigmoid=True):
-
-        super().__init__()
-
-        self.encoder_ = encoder
-        self.decoder_ = decoder
-
-        self.sigmoid_ = sigmoid
-
-        return
+    mu_, logstd_ = torch.zeros(1, 1), torch.zeros(1, 1)
 
     def reparametrize(self, mu, logstd):
         r"""Sampling a set of latent embeddings.
@@ -228,8 +221,8 @@ class VAE(torch.nn.Module):
             The output samples.
         """
 
-        mu, logstd = self.encoder_(x)
-        z = self.reparametrize(mu, logstd)
+        self.mu_, self.logstd_ = self.encoder_(x)
+        z = self.reparametrize(self.mu_, self.logstd_)
         x = self.decoder_(z)
 
         if self.sigmoid_:
@@ -251,16 +244,27 @@ class VAE(torch.nn.Module):
             The latent samples.
         """
 
-        mu, logstd = self.encoder_(x)
-        z = self.reparametrize(mu, logstd)
+        self.mu_, self.logstd_ = self.encoder_(x)
+        z = self.reparametrize(self.mu_, self.logstd_)
 
         return z
 
-    def reset_parameters(self):
-        r"""Reset the parameters inside.
+    def kl_loss(self):
+        r"""Compute KL loss of current VAE.
+
+        It will use the latest obtained mean and log standard
+        deviation of samples in the forward pass to compute
+        current KL loss.
+
+        Returns
+        -------
+        loss : tensor
+            The KL loss to a standard normal distribution.
         """
 
-        self.encoder_.reset_parameters()
-        self.decoder_.reset_parameters()
+        kl_loss = kl_with_std_norm(
+            self.mu_, self.logstd_,
+            reduction='batchmean'
+        )
 
-        return
+        return kl_loss

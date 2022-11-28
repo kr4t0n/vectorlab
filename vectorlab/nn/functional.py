@@ -15,8 +15,7 @@ def apply_loss_reduction(loss, reduction):
     loss : tensor, shape (n_batches)
         The batch of loss values.
     reduction : str
-        The reduction method should be one of the none, mean and
-        sum.
+        Specifies the reduction to apply to the output.
 
     Returns
     -------
@@ -42,12 +41,12 @@ def kl_with_std_norm(mu, logstd, reduction='mean'):
     logstd : tensor
         The log standard deviation of samples.
     reduction : str, optional
-        The reduction to apply to the results.
+        Specifies the reduction to apply to the output.
 
     Returns
     -------
     tensor
-        The result of kl divergence to a normal distribution.
+        The result of kl divergence to a standard normal distribution.
     """
 
     reduced = -0.5 * (1 + 2 * logstd - mu ** 2 - logstd.exp() ** 2)

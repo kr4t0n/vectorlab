@@ -13,6 +13,8 @@ class KLWithStdNormLoss(torch.nn.modules.loss._Loss):
         Specifies the reduction to apply to the output.
     """
 
+    __constants__ = ['reduction']
+
     def __init__(self, reduction='mean'):
 
         super().__init__(reduction=reduction)

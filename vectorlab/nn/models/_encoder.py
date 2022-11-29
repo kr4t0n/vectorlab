@@ -3,7 +3,7 @@ import torch
 from ._mlp import MLP
 
 
-class BasicEncoder(torch.nn.Module):
+class _BasicEncoder(torch.nn.Module):
     r"""An abstract basic encoder class.
 
     Parameters
@@ -77,7 +77,77 @@ class BasicEncoder(torch.nn.Module):
         return
 
 
-class MLPEncoder(BasicEncoder):
+class _BasicRNNEncoder(_BasicEncoder):
+    r"""An abstract basic RNN encoder class.
+
+    Parameters
+    ----------
+    in_dims : int
+        The dimension of input sample.
+    hidden_dims : int
+        The dimension of hidden sample.
+    num_layers : int
+        The number of hidden layers.
+    dropout : float
+        The dropout rate as a regularization method to each hidden layer.
+    bias : bool
+        Whether the model will learn an additive bias or not.
+    kwargs : dict
+        The extra arguments passed to initialize an encoder.
+
+    Attributes
+    ----------
+    in_dims_ : int
+        The dimension of input sample.
+    hidden_dims_ : int
+        The dimension of hidden sample.
+    num_layers_ : int
+        The number of hidden layers.
+    dropout_ : float
+        The dropout rate as a regularization method to each hidden layer.
+    bias_ : bool
+        Whether the model will learn an additive bias or not.
+    kwargs_ : dict
+        The extra arguments passed to initialize an encoder.
+    encoder_ : torch.nn.Module
+        The initialized encoder.
+    """
+
+    def _init_encoder(self):
+        r"""An abstract method to initialize desired encoder.
+
+        Raises
+        ------
+        NotImplementedError
+            When the method is not implemented, an error is raised.
+        """
+
+        raise NotImplementedError
+
+    def _flatten_hidden(self, h):
+        r"""Flatten hidden state.
+
+        Parameters
+        ----------
+        h : tensor
+            The input hidden state.
+
+        Returns
+        -------
+        tensor
+            The flattened hidden state.
+        """
+
+        # flatten hidden states
+        # (num_directions * num_layers, batch_size, out_dims) ==>
+        # (batch_size, num_directions * num_layers, out_dims) ==>
+        # (batch_size, num_directions * num_layers * out_dims)
+        h = h.transpose(0, 1).contiguous().view(h.shape[1], -1)
+
+        return h
+
+
+class MLPEncoder(_BasicEncoder):
     r"""A MLP based encoder.
 
     Parameters
@@ -170,7 +240,7 @@ class MLPEncoder(BasicEncoder):
         return x
 
 
-class GRUEncoder(BasicEncoder):
+class GRUEncoder(_BasicRNNEncoder):
     r"""A GRU based encoder.
 
     Parameters
@@ -258,17 +328,12 @@ class GRUEncoder(BasicEncoder):
         """
 
         _, h = self.encoder_(x)
-
-        # flatten hidden states
-        # (num_directions * num_layers, batch_size, out_dims) ==>
-        # (batch_size, num_directions * num_layers, out_dims) ==>
-        # (batch_size, num_directions * num_layers * out_dims)
-        h = h.transpose(0, 1).contiguous().view(h.shape[1], -1)
+        h = self._flatten_hidden(h)
 
         return h
 
 
-class LSTMEncoder(BasicEncoder):
+class LSTMEncoder(_BasicRNNEncoder):
     r"""A LSTM based encoder.
 
     Parameters
@@ -351,16 +416,15 @@ class LSTMEncoder(BasicEncoder):
         _, (h, c) = self.encoder_(x)
 
         # flatten hidden and cell states
-        # operation is similar as the gru flatten hidden states
-        h = h.transpose(0, 1).contiguous().view(h.shape[1], -1)
-        c = c.transpose(0, 1).contiguous().view(c.shape[1], -1)
+        h = self._flatten_hidden(h)
+        c = self._flatten_hidden(c)
 
         h = torch.cat((h, c), dim=1)
 
         return h
 
 
-class BasicVarEncoder(BasicEncoder):
+class _BasicVarEncoder(_BasicEncoder):
     r"""An abstract basic variational encoder class.
 
     Parameters
@@ -445,7 +509,7 @@ class BasicVarEncoder(BasicEncoder):
         return
 
 
-class MLPVarEncoder(BasicVarEncoder):
+class MLPVarEncoder(_BasicVarEncoder):
     r"""An abstract basic variational encoder class.
 
     Parameters

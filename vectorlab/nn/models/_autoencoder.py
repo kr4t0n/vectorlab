@@ -126,6 +126,56 @@ class AE(torch.nn.Module):
         return
 
 
+class RNNAE(AE):
+    r"""A RNN based Auto-Encoder.
+
+    For RNN Auto-Encoder, the encoder and decoder inside a member
+    of RNN based Neural Network.
+
+    Parameters
+    ----------
+    encoder : torch.nn.Module
+        The encoder used to encode inputs to latent space.
+    decoder : torch.nn.Module
+        The decoder used to reconstruct inputs from latent space.
+    sigmoid : bool
+        Whether to use sigmoid function over the outputs or not.
+
+    Attributes
+    ----------
+    encoder_ : torch.nn.Module
+        The user defined encoder.
+    decoder_ : torch.nn.Module
+        The user defined decoder.
+    sigmoid_ : bool
+        Whether to use sigmoid function over the outputs or not.
+    """
+
+    def forward(self, x):
+        r"""The forward process to obtain output samples.
+
+        Parameters
+        ----------
+        x : tensor
+            The input samples.
+        h : tensor
+            The input hidden state.
+
+        Returns
+        -------
+        tensor
+            The output samples.
+        """
+
+        h = self.encoder_(x)
+        x, _ = self.decoder_(x, h)
+
+        if self.sigmoid_:
+            x = torch.sigmoid(x)
+
+        return x
+
+
 class VAE(AE):
     r"""Variational Auto-Encoder (VAE) is generative model, akin to
     generative adversarial networks. VAEs are directed probabilistic

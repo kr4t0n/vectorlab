@@ -282,7 +282,7 @@ class GRUEncoder(_BasicRNNEncoder):
         Returns
         -------
         encoder : torch.nn.Module
-            The MLP based encoder.
+            The GRU based encoder.
         """
 
         encoder = torch.nn.GRU(
@@ -370,6 +370,13 @@ class LSTMEncoder(_BasicRNNEncoder):
     """
 
     def _init_encoder(self):
+        r"""Initialize a LSTM as the encoder.
+
+        Returns
+        -------
+        encoder : torch.nn.Module
+            The LSTM based encoder.
+        """
 
         encoder = torch.nn.LSTM(
             input_size=self.in_dims_, hidden_size=self.hidden_dims_,

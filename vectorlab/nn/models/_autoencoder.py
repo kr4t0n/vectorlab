@@ -45,18 +45,18 @@ class AE(torch.nn.Module):
 
     Parameters
     ----------
-    encoder : object
+    encoder : torch.nn.Module
         The encoder used to encode inputs to latent space.
-    decoder : object
+    decoder : torch.nn.Module
         The decoder used to reconstruct inputs from latent space.
     sigmoid : bool
         Whether to use sigmoid function over the outputs or not.
 
     Attributes
     ----------
-    encoder_ : object
+    encoder_ : torch.nn.Module
         The user defined encoder.
-    decoder_ : object
+    decoder_ : torch.nn.Module
         The user defined decoder.
     sigmoid_ : bool
         Whether to use sigmoid function over the outputs or not.
@@ -167,18 +167,18 @@ class VAE(AE):
 
     Parameters
     ----------
-    encoder : object
+    encoder : torch.nn.Module
         The encoder used to encode inputs to latent space.
-    decoder : object
+    decoder : torch.nn.Module
         The decoder used to reconstruct inputs from latent space.
     sigmoid : bool
         Whether to use sigmoid function over the outputs or not.
 
     Attributes
     ----------
-    encoder_ : object
+    encoder_ : torch.nn.Module
         The user defined encoder.
-    decoder_ : object
+    decoder_ : torch.nn.Module
         The user defined decoder.
     sigmoid_ : bool
         Whether to use sigmoid function over the outputs or not.

@@ -1,4 +1,5 @@
 import torch
+import warnings
 
 from ._mlp import MLP
 
@@ -135,6 +136,13 @@ class _BasicRNNDecoder(_BasicDecoder):
             in_features=self.hidden_dims_, out_features=self.out_dims_,
             bias=self.bias_
         )
+
+        if self.decoder_.bidirectional:
+            warnings.warn(
+                'The RNN decoder is often unidirectional, you have '
+                'initialized a bidirectional decoder, please treat '
+                'with caution.'
+            )
 
         return
 

@@ -98,6 +98,8 @@ class PadSeqDataLoader(DataLoader):
             )
         )
 
+        self.batch_first = batch_first
+
         return
 
 
@@ -121,5 +123,7 @@ class PadSeqsDataLoader(DataLoader):
                 batch, batch_first=batch_first
             )
         )
+
+        self.batch_first = batch_first
 
         return

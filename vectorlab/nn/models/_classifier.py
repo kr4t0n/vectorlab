@@ -11,6 +11,14 @@ class Classifier(torch.nn.Module):
     classifier : torch.nn.Module
         The classifier to classify inputs using their latent
         representations.
+
+    Attributes
+    ----------
+    encoder_ : torch.nn.Module
+        The encoder used to encode inputs to latent space.
+    classifier_ : torch.nn.Module
+        The classifier to classify inputs using their latent
+        representations.
     """
 
     def __init__(self, encoder, classifier):
@@ -74,3 +82,58 @@ class Classifier(torch.nn.Module):
         self.classifier_.reset_parameters()
 
         return
+
+
+class GClassifier(Classifier):
+    r"""A base GNN classifier.
+
+    Parameters
+    ----------
+    encoder : torch.nn.Module
+        The encoder used to encode inputs to latent space.
+    classifier : torch.nn.Module
+        The classifier to classify inputs using their latent
+        representations.
+
+    Attributes
+    ----------
+    encoder_ : torch.nn.Module
+        The encoder used to encode inputs to latent space.
+    classifier_ : torch.nn.Module
+        The classifier to classify inputs using their latent
+        representations.
+    """
+
+    def forward(self, *args, **kwargs):
+        r"""The forward process to obtain the classified result.
+
+        Returns
+        -------
+        tensor
+            The output classified result.
+        """
+
+        if hasattr(self.encoder_, 'forward_latent'):
+            z = self.encoder_.forward_latent(*args, **kwargs)
+        else:
+            z = self.encoder_(*args, **kwargs)
+
+        y_hat = self.classifier_(z)
+
+        return y_hat
+
+    def forward_latent(self, *args, **kwargs):
+        r"""The forward process to obtain latent samples.
+
+        Returns
+        -------
+        tensor
+            The latent samples.
+        """
+
+        if hasattr(self.encoder_, 'forward_latent'):
+            z = self.encoder_.forward_latent(*args, **kwargs)
+        else:
+            z = self.encoder_(*args, **kwargs)
+
+        return z

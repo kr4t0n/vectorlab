@@ -578,6 +578,48 @@ class Explorer(SLMixin):
 
         return self
 
+    def _infer_n_samples(self, batch, loader):
+        r"""Infer number of samples inside the batch.
+
+        Parameters
+        ----------
+        batch : tensor, Data, Batch
+            The batch of data.
+        loader : torch.utils.data.DataLoader
+            The data loader generate corresponding batch.
+
+        Returns
+        -------
+        n_samples : int
+            The number of samples inside.
+        """
+
+        n_samples = 0
+
+        # NN
+        if isinstance(batch, torch.Tensor):
+            # check if loader has attribute batch_first
+            # in case it is a sequence data
+            if hasattr(loader, 'batch_first'):
+                if loader.batch_first:
+                    n_samples = batch.shape[0]
+                else:
+                    n_samples = batch.shape[1]
+            else:
+                # normal dataloader, first dimension is usually
+                # the number of samples
+                n_samples = batch.shape[0]
+
+        # GNN
+        if isinstance(batch, Data):
+            # pytorch_geometric Data type for node level tasks
+            n_samples = batch.num_nodes
+        elif isinstance(batch, Batch):
+            # pytorch_geometric Batch type for graph level tasks
+            n_samples = batch.num_graphs
+
+        return n_samples
+
     def _loss_evaluate(self, loader):
         r"""The loss metrics evaluation method.
 
@@ -607,12 +649,7 @@ class Explorer(SLMixin):
                 if not isinstance(batch, (tuple, list)):
                     batch = (batch, )
 
-                if isinstance(batch[0], torch.Tensor):
-                    n_samples = batch[0].shape[0]
-                elif isinstance(batch[0], Data):
-                    n_samples = batch[0].num_nodes
-                elif isinstance(batch[0], Batch):
-                    n_samples = batch[0].num_graphs
+                n_samples = self._infer_n_samples(batch[0], loader)
 
                 net_input, loss_input = self._generate_input(batch)
 
@@ -664,12 +701,7 @@ class Explorer(SLMixin):
                 if not isinstance(batch, (tuple, list)):
                     batch = (batch, )
 
-                if isinstance(batch[0], torch.Tensor):
-                    n_samples = batch[0].shape[0]
-                elif isinstance(batch[0], Data):
-                    n_samples = batch[0].num_nodes
-                elif isinstance(batch[0], Batch):
-                    n_samples = batch[0].num_graphs
+                n_samples = self._infer_n_samples(batch[0], loader)
 
                 net_input, loss_input = self._generate_input(batch)
 

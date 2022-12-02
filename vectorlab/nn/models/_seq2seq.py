@@ -127,7 +127,10 @@ class Seq2Seq(torch.nn.Module):
         else:
             n_steps = y.shape[0]
 
-        y_hat = torch.zeros(y.shape[0], y.shape[1], self.decoder_.out_dims_)
+        y_hat = torch.zeros(
+            y.shape[0], y.shape[1], self.decoder_.out_dims_,
+            device=y.device
+        )
 
         # forward encoder process
         emb_x = self.encoder_embedding_(x)

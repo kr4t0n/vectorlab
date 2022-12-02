@@ -109,6 +109,8 @@ class Explorer(SLMixin):
         The number of subprocesses to load data.
     num_epochs_ : int
         The number of epoch to train the neural network.
+    epochs_len_ : int
+        The length of epoch number.
     loader_fn_ : torch.utils.data.DataLoader, torch_geometric.loader.DataLoader
         The data loader to load the data from dataset.
     batch_input_ : list
@@ -211,6 +213,7 @@ class Explorer(SLMixin):
         self.batch_size_ = int(batch_size)
         self.num_workers_ = int(num_workers)
         self.num_epochs_ = int(num_epochs)
+        self.epochs_len_ = int(np.floor(np.log10(self.num_epochs_) + 1))
 
         self.train_loader_fn_ = dataloader_resolver(train_loader_fn)
         self.train_loader_kwargs_ = \
@@ -934,7 +937,9 @@ class Explorer(SLMixin):
                         ]
                     )
 
-                pbar.set_description(f'Epoch: {epoch:03d}, {metric_repr_}')
+                pbar.set_description(
+                    f'Epoch: {epoch:0{self.epochs_len_}d}, {metric_repr_}'
+                )
 
             if self.earlystopping_:
                 if valid_dataset is None:
@@ -1099,7 +1104,9 @@ class Explorer(SLMixin):
                             for key, value in k_valid_metrics_.items()
                         ]
                     )
-                    pbar.set_description(f'Epoch: {epoch:03d}, {metric_repr_}')
+                    pbar.set_description(
+                        f'Epoch: {epoch:0{self.epochs_len_}d}, {metric_repr_}'
+                    )
 
                 if self.earlystopping_:
                     self.earlystopping_.record_metric(

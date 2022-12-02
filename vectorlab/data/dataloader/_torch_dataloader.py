@@ -87,6 +87,11 @@ class PadSeqDataLoader(DataLoader):
     ----------
     batch_first : bool
         Whether pad sequence in a batch first manner or not.
+
+    Attributes
+    ----------
+    batch_first : bool
+        Whether pad sequence in a batch first manner or not.
     """
 
     def __init__(self, *args, batch_first=False, **kwargs):
@@ -110,6 +115,11 @@ class PadSeqsDataLoader(DataLoader):
     while using a customized pad sequence collate function.
 
     Parameters
+    ----------
+    batch_first : bool
+        Whether pad sequence in a batch first manner or not.
+
+    Attributes
     ----------
     batch_first : bool
         Whether pad sequence in a batch first manner or not.

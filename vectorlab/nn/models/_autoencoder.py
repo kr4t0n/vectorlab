@@ -126,6 +126,62 @@ class AE(torch.nn.Module):
         return
 
 
+class GAE(AE):
+    r"""A GNN based Auto-Encoder.
+
+    Parameters
+    ----------
+    encoder : torch.nn.Module
+        The encoder used to encode inputs to latent space.
+    decoder : torch.nn.Module
+        The decoder used to reconstruct inputs from latent space.
+    sigmoid : bool
+        Whether to use sigmoid function over the outputs or not.
+
+    Attributes
+    ----------
+    encoder_ : torch.nn.Module
+        The user defined encoder.
+    decoder_ : torch.nn.Module
+        The user defined decoder.
+    sigmoid_ : bool
+        Whether to use sigmoid function over the outputs or not.
+    """
+
+    def forward(self, *args, **kwargs):
+        r"""The forward process to obtain output samples.
+
+        Returns
+        -------
+        tensor
+            The output samples.
+        """
+
+        z = self.encoder_(*args, **kwargs)
+        x = self.decoder_(z)
+
+        if self.sigmoid_:
+            x = torch.sigmoid(x)
+
+        return x
+
+    def forward_latent(self, *args, **kwargs):
+        r"""The forward process to obtain latent samples.
+
+        Returns
+        -------
+        tensor
+            The latent samples.
+        """
+
+        if hasattr(self.encoder_, 'forward_latent'):
+            z = self.encoder_.forward_latent(*args, **kwargs)
+        else:
+            z = self.encoder_(*args, **kwargs)
+
+        return z
+
+
 class RNNAE(AE):
     r"""A RNN based Auto-Encoder.
 
@@ -318,3 +374,58 @@ class VAE(AE):
         )
 
         return kl_loss
+
+
+class VGAE(VAE):
+    r"""A GNN based Variational Auto-encoder.
+
+    Parameters
+    ----------
+    encoder : torch.nn.Module
+        The encoder used to encode inputs to latent space.
+    decoder : torch.nn.Module
+        The decoder used to reconstruct inputs from latent space.
+    sigmoid : bool
+        Whether to use sigmoid function over the outputs or not.
+
+    Attributes
+    ----------
+    encoder_ : torch.nn.Module
+        The user defined encoder.
+    decoder_ : torch.nn.Module
+        The user defined decoder.
+    sigmoid_ : bool
+        Whether to use sigmoid function over the outputs or not.
+    """
+
+    def forward(self, *args, **kwargs):
+        r"""The forward process to obtain output samples.
+
+        Returns
+        -------
+        tensor
+            The output samples.
+        """
+
+        self.mu_, self.logstd_ = self.encoder_(*args, **kwargs)
+        z = self.reparametrize(self.mu_, self.logstd_)
+        x = self.decoder_(z)
+
+        if self.sigmoid_:
+            x = torch.sigmoid(x)
+
+        return x
+
+    def forward_latent(self, *args, **kwargs):
+        r"""The forward process to obtain latent samples.
+
+        Returns
+        -------
+        tensor
+            The latent samples.
+        """
+
+        self.mu_, self.logstd_ = self.encoder_(*args, **kwargs)
+        z = self.reparametrize(self.mu_, self.logstd_)
+
+        return z

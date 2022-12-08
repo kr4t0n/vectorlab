@@ -15,8 +15,8 @@ from ._check import check_valid_float, check_valid_option
 if 'DATE' not in os.environ:
     os.environ['DATE'] = datetime.now().strftime('%Y%m%d')
 
-# timestamp and date conversion utils #
-#-------------------------------------#
+#  timestamp and date conversion utils  #
+# ------------------------------------- #
 
 
 def _auto_convert_ts(ts):
@@ -163,8 +163,8 @@ def dttz_to_ts(dttz):
     return ts
 
 
-# date parser utils #
-#-------------------#
+#  date parser utils  #
+# ------------------- #
 
 
 def _calculate_date_structure(date_structure):

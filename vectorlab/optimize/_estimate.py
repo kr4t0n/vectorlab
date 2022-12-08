@@ -1,5 +1,6 @@
 """
-This module provides several estimation methods to find the best parameters for a certain algorithm.
+This module provides several estimation methods to find the best
+parameters for a certain algorithm.
 """
 
 import numpy as np

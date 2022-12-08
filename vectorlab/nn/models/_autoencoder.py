@@ -148,8 +148,15 @@ class GAE(AE):
         Whether to use sigmoid function over the outputs or not.
     """
 
-    def forward(self, *args, **kwargs):
+    def forward(self, x, edge_index, *args, **kwargs):
         r"""The forward process to obtain output samples.
+
+        Parameters
+        ----------
+        x : tensor
+            The node features of the graph.
+        edge_index : tensor
+            The adjacency matrix of the graph.
 
         Returns
         -------
@@ -157,7 +164,7 @@ class GAE(AE):
             The output samples.
         """
 
-        z = self.encoder_(*args, **kwargs)
+        z = self.encoder_(x, edge_index, *args, **kwargs)
         x = self.decoder_(z)
 
         if self.sigmoid_:
@@ -165,8 +172,15 @@ class GAE(AE):
 
         return x
 
-    def forward_latent(self, *args, **kwargs):
+    def forward_latent(self, x, edge_index, *args, **kwargs):
         r"""The forward process to obtain latent samples.
+
+        Parameters
+        ----------
+        x : tensor
+            The node features of the graph.
+        edge_index : tensor
+            The adjacency matrix of the graph.
 
         Returns
         -------
@@ -175,9 +189,9 @@ class GAE(AE):
         """
 
         if hasattr(self.encoder_, 'forward_latent'):
-            z = self.encoder_.forward_latent(*args, **kwargs)
+            z = self.encoder_.forward_latent(x, edge_index, *args, **kwargs)
         else:
-            z = self.encoder_(*args, **kwargs)
+            z = self.encoder_(x, edge_index, *args, **kwargs)
 
         return z
 
@@ -398,8 +412,15 @@ class VGAE(VAE):
         Whether to use sigmoid function over the outputs or not.
     """
 
-    def forward(self, *args, **kwargs):
+    def forward(self, x, edge_index, *args, **kwargs):
         r"""The forward process to obtain output samples.
+
+        Parameters
+        ----------
+        x : tensor
+            The node features of the graph.
+        edge_index : tensor
+            The adjacency matrix of the graph.
 
         Returns
         -------
@@ -407,7 +428,7 @@ class VGAE(VAE):
             The output samples.
         """
 
-        self.mu_, self.logstd_ = self.encoder_(*args, **kwargs)
+        self.mu_, self.logstd_ = self.encoder_(x, edge_index, *args, **kwargs)
         z = self.reparametrize(self.mu_, self.logstd_)
         x = self.decoder_(z)
 
@@ -416,8 +437,15 @@ class VGAE(VAE):
 
         return x
 
-    def forward_latent(self, *args, **kwargs):
+    def forward_latent(self, x, edge_index, *args, **kwargs):
         r"""The forward process to obtain latent samples.
+
+        Parameters
+        ----------
+        x : tensor
+            The node features of the graph.
+        edge_index : tensor
+            The adjacency matrix of the graph.
 
         Returns
         -------
@@ -425,7 +453,7 @@ class VGAE(VAE):
             The latent samples.
         """
 
-        self.mu_, self.logstd_ = self.encoder_(*args, **kwargs)
+        self.mu_, self.logstd_ = self.encoder_(x, edge_index, *args, **kwargs)
         z = self.reparametrize(self.mu_, self.logstd_)
 
         return z

@@ -19,6 +19,8 @@ class _BasicDecoder(torch.nn.Module):
         The dropout rate as a regularization method to each hidden layer.
     bias : bool
         Whether the model will learn an additive bias or not.
+    sigmoid : bool
+        Whether to use sigmoid function over the outputs or not.
     kwargs : dict
         The extra arguments passed to initialize an decoder.
 
@@ -34,6 +36,8 @@ class _BasicDecoder(torch.nn.Module):
         The dropout rate as a regularization method to each hidden layer.
     bias_ : bool
         Whether the model will learn an additive bias or not.
+    sigmoid_ : bool
+        Whether to use sigmoid function over the outputs or not.
     kwargs_ : dict
         The extra arguments passed to initialize an decoder.
     decoder_ : torch.nn.Module
@@ -43,6 +47,7 @@ class _BasicDecoder(torch.nn.Module):
     def __init__(self, hidden_dims, out_dims, num_layers,
                  dropout=.5,
                  bias=True,
+                 sigmoid=True,
                  **kwargs):
 
         super().__init__()
@@ -52,6 +57,7 @@ class _BasicDecoder(torch.nn.Module):
         self.num_layers_ = num_layers
         self.dropout_ = dropout
         self.bias_ = bias
+        self.sigmoid_ = sigmoid
         self.kwargs_ = kwargs
 
         self.decoder_ = self._init_decoder()
@@ -95,6 +101,8 @@ class _BasicRNNDecoder(_BasicDecoder):
         The dropout rate as a regularization method to each hidden layer.
     bias : bool
         Whether the model will learn an additive bias or not.
+    sigmoid : bool
+        Whether to use sigmoid function over the outputs or not.
     kwargs : dict
         The extra arguments passed to initialize an decoder.
 
@@ -112,6 +120,8 @@ class _BasicRNNDecoder(_BasicDecoder):
         The dropout rate as a regularization method to each hidden layer.
     bias_ : bool
         Whether the model will learn an additive bias or not.
+    sigmoid_ : bool
+        Whether to use sigmoid function over the outputs or not.
     kwargs_ : dict
         The extra arguments passed to initialize an decoder.
     decoder_ : torch.nn.Module
@@ -123,6 +133,7 @@ class _BasicRNNDecoder(_BasicDecoder):
     def __init__(self, in_dims, hidden_dims, out_dims, num_layers,
                  dropout=.5,
                  bias=True,
+                 sigmoid=True,
                  **kwargs):
 
         self.in_dims_ = in_dims
@@ -130,6 +141,7 @@ class _BasicRNNDecoder(_BasicDecoder):
         super().__init__(hidden_dims, out_dims, num_layers,
                          dropout=dropout,
                          bias=bias,
+                         sigmoid=sigmoid,
                          **kwargs)
 
         self.out_ = torch.nn.Linear(
@@ -182,6 +194,8 @@ class MLPDecoder(_BasicDecoder):
         The dropout rate as a regularization method to each hidden layer.
     bias : bool
         Whether the model will learn an additive bias or not.
+    sigmoid : bool
+        Whether to use sigmoid function over the outputs or not.
     kwargs : dict
         The extra arguments passed to initialize an decoder.
 
@@ -197,6 +211,8 @@ class MLPDecoder(_BasicDecoder):
         The dropout rate as a regularization method to each hidden layer.
     bias_ : bool
         Whether the model will learn an additive bias or not.
+    sigmoid_ : bool
+        Whether to use sigmoid function over the outputs or not.
     kwargs_ : dict
         The extra arguments passed to initialize an decoder.
     decoder_ : torch.nn.Module
@@ -239,6 +255,9 @@ class MLPDecoder(_BasicDecoder):
 
         x = self.decoder_(x)
 
+        if self.sigmoid_:
+            x = torch.sigmoid(x)
+
         return x
 
 
@@ -259,6 +278,8 @@ class GRUDecoder(_BasicRNNDecoder):
         The dropout rate as a regularization method to each hidden layer.
     bias : bool
         Whether the model will learn an additive bias or not.
+    sigmoid : bool
+        Whether to use sigmoid function over the outputs or not.
     kwargs : dict
         The extra arguments passed to initialize an decoder.
 
@@ -276,6 +297,8 @@ class GRUDecoder(_BasicRNNDecoder):
         The dropout rate as a regularization method to each hidden layer.
     bias_ : bool
         Whether the model will learn an additive bias or not.
+    sigmoid_ : bool
+        Whether to use sigmoid function over the outputs or not.
     kwargs_ : dict
         The extra arguments passed to initialize an decoder.
     decoder_ : torch.nn.Module
@@ -324,6 +347,9 @@ class GRUDecoder(_BasicRNNDecoder):
         x, h = self.decoder_(x, h)
         x = self.out_(x)
 
+        if self.sigmoid_:
+            x = torch.sigmoid(x)
+
         return x, h
 
 
@@ -344,6 +370,8 @@ class LSTMDecoder(_BasicRNNDecoder):
         The dropout rate as a regularization method to each hidden layer.
     bias : bool
         Whether the model will learn an additive bias or not.
+    sigmoid : bool
+        Whether to use sigmoid function over the outputs or not.
     kwargs : dict
         The extra arguments passed to initialize an decoder.
 
@@ -361,6 +389,8 @@ class LSTMDecoder(_BasicRNNDecoder):
         The dropout rate as a regularization method to each hidden layer.
     bias_ : bool
         Whether the model will learn an additive bias or not.
+    sigmoid_ : bool
+        Whether to use sigmoid function over the outputs or not.
     kwargs_ : dict
         The extra arguments passed to initialize an decoder.
     decoder_ : torch.nn.Module
@@ -408,5 +438,8 @@ class LSTMDecoder(_BasicRNNDecoder):
 
         x, h = self.decoder_(x, h)
         x = self.out_(x)
+
+        if self.sigmoid_:
+            x = torch.sigmoid(x)
 
         return x, h

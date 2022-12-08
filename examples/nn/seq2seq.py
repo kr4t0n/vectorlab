@@ -13,7 +13,8 @@ net = vectorlab.nn.models.Seq2Seq(
     ),
     decoder_embedding=torch.nn.Embedding(20, 3),
     decoder=vectorlab.nn.models.GRUDecoder(
-        in_dims=3, hidden_dims=8, out_dims=20, num_layers=2
+        in_dims=3, hidden_dims=8, out_dims=20, num_layers=2,
+        sigmoid=False
     ),
     start_token=0,
     teacher_forcing=.0

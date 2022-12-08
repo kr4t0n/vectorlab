@@ -11,8 +11,9 @@ from vectorlab.nn.models._decoder import (
 @pytest.mark.parametrize('num_layers', [1, 3])
 @pytest.mark.parametrize('dropout', [.0, .5])
 @pytest.mark.parametrize('bias', [True, False])
+@pytest.mark.parametrize('sigmoid', [True, False])
 @pytest.mark.parametrize('plain_last', [True, False])
-def test_mlp_encoder(out_dims, num_layers, bias, dropout, plain_last):
+def test_mlp_encoder(out_dims, num_layers, dropout, bias, sigmoid, plain_last):
 
     n_samples = 10
     hidden_dims = 2 * out_dims
@@ -23,6 +24,7 @@ def test_mlp_encoder(out_dims, num_layers, bias, dropout, plain_last):
         num_layers=num_layers,
         dropout=dropout,
         bias=bias,
+        sigmoid=sigmoid,
         plain_last=plain_last
     )
 
@@ -34,7 +36,8 @@ def test_mlp_encoder(out_dims, num_layers, bias, dropout, plain_last):
 @pytest.mark.parametrize('num_layers', [1, 3])
 @pytest.mark.parametrize('dropout', [.0, .5])
 @pytest.mark.parametrize('bias', [True, False])
-def test_rnn_encoder(in_dims, num_layers, bias, dropout):
+@pytest.mark.parametrize('sigmoid', [True, False])
+def test_rnn_encoder(in_dims, num_layers, dropout, bias, sigmoid):
 
     n_samples = 10
     n_seqs = 16
@@ -49,13 +52,15 @@ def test_rnn_encoder(in_dims, num_layers, bias, dropout):
         in_dims=in_dims, hidden_dims=hidden_dims, out_dims=out_dims,
         num_layers=num_layers,
         dropout=dropout,
-        bias=bias
+        bias=bias,
+        sigmoid=sigmoid
     )
     lstm_decoder = LSTMDecoder(
         in_dims=in_dims, hidden_dims=hidden_dims, out_dims=out_dims,
         num_layers=num_layers,
         dropout=dropout,
-        bias=bias
+        bias=bias,
+        sigmoid=sigmoid
     )
 
     gru_output, gru_hidden = gru_decoder.forward(X, h)

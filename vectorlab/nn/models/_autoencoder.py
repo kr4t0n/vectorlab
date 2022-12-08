@@ -49,8 +49,6 @@ class AE(torch.nn.Module):
         The encoder used to encode inputs to latent space.
     decoder : torch.nn.Module
         The decoder used to reconstruct inputs from latent space.
-    sigmoid : bool
-        Whether to use sigmoid function over the outputs or not.
 
     Attributes
     ----------
@@ -58,18 +56,14 @@ class AE(torch.nn.Module):
         The user defined encoder.
     decoder_ : torch.nn.Module
         The user defined decoder.
-    sigmoid_ : bool
-        Whether to use sigmoid function over the outputs or not.
     """
 
-    def __init__(self, encoder, decoder, sigmoid=True):
+    def __init__(self, encoder, decoder):
 
         super().__init__()
 
         self.encoder_ = encoder
         self.decoder_ = decoder
-
-        self.sigmoid_ = sigmoid
 
         return
 
@@ -89,9 +83,6 @@ class AE(torch.nn.Module):
 
         z = self.encoder_(x)
         x = self.decoder_(z)
-
-        if self.sigmoid_:
-            x = torch.sigmoid(x)
 
         return x
 
@@ -135,8 +126,6 @@ class GAE(AE):
         The encoder used to encode inputs to latent space.
     decoder : torch.nn.Module
         The decoder used to reconstruct inputs from latent space.
-    sigmoid : bool
-        Whether to use sigmoid function over the outputs or not.
 
     Attributes
     ----------
@@ -144,8 +133,6 @@ class GAE(AE):
         The user defined encoder.
     decoder_ : torch.nn.Module
         The user defined decoder.
-    sigmoid_ : bool
-        Whether to use sigmoid function over the outputs or not.
     """
 
     def forward(self, x, edge_index, *args, **kwargs):
@@ -166,9 +153,6 @@ class GAE(AE):
 
         z = self.encoder_(x, edge_index, *args, **kwargs)
         x = self.decoder_(z)
-
-        if self.sigmoid_:
-            x = torch.sigmoid(x)
 
         return x
 
@@ -208,8 +192,6 @@ class RNNAE(AE):
         The encoder used to encode inputs to latent space.
     decoder : torch.nn.Module
         The decoder used to reconstruct inputs from latent space.
-    sigmoid : bool
-        Whether to use sigmoid function over the outputs or not.
 
     Attributes
     ----------
@@ -217,8 +199,6 @@ class RNNAE(AE):
         The user defined encoder.
     decoder_ : torch.nn.Module
         The user defined decoder.
-    sigmoid_ : bool
-        Whether to use sigmoid function over the outputs or not.
     """
 
     def forward(self, x):
@@ -239,9 +219,6 @@ class RNNAE(AE):
 
         h = self.encoder_(x)
         x, _ = self.decoder_(x, h)
-
-        if self.sigmoid_:
-            x = torch.sigmoid(x)
 
         return x
 
@@ -291,8 +268,6 @@ class VAE(AE):
         The encoder used to encode inputs to latent space.
     decoder : torch.nn.Module
         The decoder used to reconstruct inputs from latent space.
-    sigmoid : bool
-        Whether to use sigmoid function over the outputs or not.
 
     Attributes
     ----------
@@ -300,8 +275,6 @@ class VAE(AE):
         The user defined encoder.
     decoder_ : torch.nn.Module
         The user defined decoder.
-    sigmoid_ : bool
-        Whether to use sigmoid function over the outputs or not.
     """
 
     mu_, logstd_ = torch.zeros(1, 1), torch.zeros(1, 1)
@@ -344,9 +317,6 @@ class VAE(AE):
         self.mu_, self.logstd_ = self.encoder_(x)
         z = self.reparametrize(self.mu_, self.logstd_)
         x = self.decoder_(z)
-
-        if self.sigmoid_:
-            x = torch.sigmoid(x)
 
         return x
 
@@ -399,8 +369,6 @@ class VGAE(VAE):
         The encoder used to encode inputs to latent space.
     decoder : torch.nn.Module
         The decoder used to reconstruct inputs from latent space.
-    sigmoid : bool
-        Whether to use sigmoid function over the outputs or not.
 
     Attributes
     ----------
@@ -408,8 +376,6 @@ class VGAE(VAE):
         The user defined encoder.
     decoder_ : torch.nn.Module
         The user defined decoder.
-    sigmoid_ : bool
-        Whether to use sigmoid function over the outputs or not.
     """
 
     def forward(self, x, edge_index, *args, **kwargs):
@@ -431,9 +397,6 @@ class VGAE(VAE):
         self.mu_, self.logstd_ = self.encoder_(x, edge_index, *args, **kwargs)
         z = self.reparametrize(self.mu_, self.logstd_)
         x = self.decoder_(z)
-
-        if self.sigmoid_:
-            x = torch.sigmoid(x)
 
         return x
 

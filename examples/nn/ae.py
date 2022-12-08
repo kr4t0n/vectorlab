@@ -13,9 +13,9 @@ ae_net = vectorlab.nn.models.AE(
         in_dims=3, hidden_dims=8, num_layers=2
     ),
     decoder=vectorlab.nn.models.MLPDecoder(
-        hidden_dims=8, out_dims=3, num_layers=2
-    ),
-    sigmoid=True
+        hidden_dims=8, out_dims=3, num_layers=2,
+        sigmoid=True
+    )
 )
 ae_loss_fn = torch.nn.MSELoss()
 explorer = vectorlab.nn.Explorer(
@@ -31,9 +31,9 @@ vae_net = vectorlab.nn.models.VAE(
         in_dims=3, hidden_dims=8, num_layers=2
     ),
     decoder=vectorlab.nn.models.MLPDecoder(
-        hidden_dims=8, out_dims=3, num_layers=2
-    ),
-    sigmoid=True
+        hidden_dims=8, out_dims=3, num_layers=2,
+        sigmoid=True
+    )
 )
 
 
@@ -54,9 +54,9 @@ rnn_net = vectorlab.nn.models.RNNAE(
         in_dims=3, hidden_dims=8, num_layers=2
     ),
     decoder=vectorlab.nn.models.GRUDecoder(
-        in_dims=3, hidden_dims=8, out_dims=3, num_layers=2
-    ),
-    sigmoid=True
+        in_dims=3, hidden_dims=8, out_dims=3, num_layers=2,
+        sigmoid=True
+    )
 )
 gru_loss_fn = torch.nn.MSELoss()
 explorer = vectorlab.nn.Explorer(

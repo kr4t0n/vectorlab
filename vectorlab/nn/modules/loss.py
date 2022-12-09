@@ -37,7 +37,10 @@ class KLWithStdNormLoss(torch.nn.modules.loss._Loss):
             The KL loss to a standard normal distribution.
         """
 
-        loss = F.kl_with_std_norm(mu, logstd, self.reduction)
+        loss = F.kl_with_std_norm(
+            mu, logstd,
+            reduction=self.reduction
+        )
 
         return loss
 

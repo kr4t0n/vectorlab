@@ -67,3 +67,34 @@ def kl_with_std_norm(mu, logstd, reduction='mean'):
         reduced = apply_loss_reduction(reduced, reduction=reduction)
 
     return reduced
+
+
+def graph_recon_loss(adj, pos_edge_index, neg_edge_index, reduction='mean'):
+    r"""Compute graph reconstruction loss.
+
+    Parameters
+    ----------
+    adj : tensor
+        The adjacency matrix of reconstructed graph.
+    pos_edge_index : tensor
+        The positive edge index.
+    neg_edge_index : tensor
+        The negative edge index.
+    reduction : str, optional
+        Specifies the reduction to apply to the output.
+
+    Returns
+    -------
+    tensor
+        The resulf computed graph reconstruction loss.
+    """
+
+    pos_loss = - adj[pos_edge_index[0], pos_edge_index[1]].log()
+    pos_reduced = apply_loss_reduction(pos_loss, reduction=reduction)
+
+    neg_loss = - (1 - adj[neg_edge_index[0], neg_edge_index[1]]).log()
+    neg_reduced = apply_loss_reduction(neg_loss, reduction=reduction)
+
+    reduced = pos_reduced + neg_reduced
+
+    return reduced

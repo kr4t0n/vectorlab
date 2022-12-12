@@ -89,10 +89,12 @@ def graph_recon_loss(adj, pos_edge_index, neg_edge_index, reduction='mean'):
         The resulf computed graph reconstruction loss.
     """
 
-    pos_loss = - adj[pos_edge_index[0], pos_edge_index[1]].log()
+    pos_loss = \
+        - adj[pos_edge_index[0], pos_edge_index[1]].log().clamp_min_(-100)
     pos_reduced = apply_loss_reduction(pos_loss, reduction=reduction)
 
-    neg_loss = - (1 - adj[neg_edge_index[0], neg_edge_index[1]]).log()
+    neg_loss = \
+        - (1 - adj[neg_edge_index[0], neg_edge_index[1]]).log().clamp_min_(-100)
     neg_reduced = apply_loss_reduction(neg_loss, reduction=reduction)
 
     reduced = pos_reduced + neg_reduced

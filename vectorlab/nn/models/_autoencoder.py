@@ -1,6 +1,7 @@
 import torch
 
 from ..functional import kl_with_std_norm
+from torch_geometric.utils import negative_sampling
 
 
 class AE(torch.nn.Module):
@@ -178,6 +179,93 @@ class GAE(AE):
             z = self.encoder_(x, edge_index, *args, **kwargs)
 
         return z
+
+
+class FastGAE(GAE):
+    r"""A faster GNN based Auto-Encoder.
+
+    This is a faster version of GAE. During training process, FastGAE only
+    infers the edge probabilities of given positive and negative edge index
+    rather than the whole graph of all pairs of nodes.
+
+    Parameters
+    ----------
+    encoder : torch.nn.Module
+        The encoder used to encode inputs to latent space.
+    decoder : torch.nn.Module
+        The decoder used to reconstruct inputs from latent space.
+
+    Attributes
+    ----------
+    encoder_ : torch.nn.Module
+        The user defined encoder.
+    decoder_ : torch.nn.Module
+        The user defined decoder.
+    """
+
+    def forward(self, x, edge_index, *args, **kwargs):
+        r"""The forward process to obtain output samples.
+
+        During the training process, the forward pass will only
+        return the latent representation. During the inference
+        the forwad pass will go through all the processes to
+        obtain the output results.
+
+        Parameters
+        ----------
+        x : tensor
+            The node features of the graph.
+        edge_index : tensor
+            The adjacency matrix of the graph.
+
+        Returns
+        -------
+        tensor
+            The latent or output samples.
+        """
+
+        self.edge_index_ = edge_index
+        self.z_ = self.encoder_(x, edge_index, *args, **kwargs)
+
+        if not self.training:
+            x = self.decoder_(self.z_)
+            return x
+
+        return self.z_
+
+    def graph_recon_loss(self, neg_edge_index=None):
+        r"""Compute graph reconstruction loss of currest FastGAE.
+
+        It will use the latest obtained latest representation
+        and positive edge index in the forward pass to compute
+        current graph reconstruction loss.
+
+        Parameters
+        ----------
+        neg_edge_index : tensor, optional
+            The negative edge index.
+
+        Returns
+        -------
+        loss : tensor
+            The graph reconstruction loss.
+        """
+
+        pos_edge_index = self.edge_index_
+
+        if neg_edge_index is None:
+            neg_edge_index = negative_sampling(
+                pos_edge_index,
+                num_nodes=self.z_.shape[0]
+            )
+
+        pos_prob = self.decoder_(self.z_, pos_edge_index)
+        neg_prob = self.decoder_(self.z_, neg_edge_index)
+
+        pos_loss = - pos_prob.log().clamp_min_(-100).mean()
+        neg_loss = - (1 - neg_prob).log().clamp_min_(-100).mean()
+
+        return pos_loss + neg_loss
 
 
 class RNNAE(AE):

@@ -427,7 +427,7 @@ class VAE(AE):
         return z
 
     def kl_loss(self, mu, logstd):
-        """Compute the kl loss of VAE.
+        r"""Compute the kl loss of VAE.
 
         It will use the latest obtained mean and log standard
         deviation of samples in the forward pass to compute

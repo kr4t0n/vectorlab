@@ -1,6 +1,6 @@
 import torch
 
-from ..functional import kl_with_std_norm
+from .. import functional as F
 from torch_geometric.utils import negative_sampling
 
 
@@ -441,7 +441,7 @@ class VAE(AE):
             The log standard deviation of samples.
         """
 
-        loss = kl_with_std_norm(mu, logstd, reduction='batchmean')
+        loss = F.kl_with_std_norm(mu, logstd, reduction='batchmean')
 
         return loss
 

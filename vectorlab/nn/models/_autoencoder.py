@@ -365,8 +365,6 @@ class VAE(AE):
         The user defined decoder.
     """
 
-    mu_, logstd_ = torch.zeros(1, 1), torch.zeros(1, 1)
-
     def reparametrize(self, mu, logstd):
         r"""Sampling a set of latent embeddings.
 
@@ -402,9 +400,12 @@ class VAE(AE):
             The output samples.
         """
 
-        self.mu_, self.logstd_ = self.encoder_(x)
-        z = self.reparametrize(self.mu_, self.logstd_)
+        mu, logstd = self.encoder_(x)
+        z = self.reparametrize(mu, logstd)
         x = self.decoder_(z)
+
+        if self.training:
+            return mu, logstd, x
 
         return x
 
@@ -422,30 +423,45 @@ class VAE(AE):
             The latent samples.
         """
 
-        self.mu_, self.logstd_ = self.encoder_(x)
-        z = self.reparametrize(self.mu_, self.logstd_)
+        mu, logstd = self.encoder_(x)
+        z = self.reparametrize(mu, logstd)
 
         return z
 
-    def kl_loss(self):
-        r"""Compute KL loss of current VAE.
+    def kl_loss(self, mu, logstd):
+        """Compute the kl loss of VAE.
 
         It will use the latest obtained mean and log standard
         deviation of samples in the forward pass to compute
-        current KL loss.
+        KL loss.
+
+        Parameters
+        ----------
+        mu : tensor
+            The mean of samples.
+        logstd : tensor
+            The log standard deviation of samples.
+        """
+
+        loss = kl_with_std_norm(mu, logstd, reduction='batchmean')
+
+        return loss
+
+    def loss(self, mu, logstd, yhat, y):
+        r"""Compute the loss of VAE.
+
+        The loss of VAE contains two parts, kl loss and mse loss.
 
         Returns
         -------
         loss : tensor
-            The KL loss to a standard normal distribution.
+            The loss of VAE.
         """
 
-        kl_loss = kl_with_std_norm(
-            self.mu_, self.logstd_,
-            reduction='batchmean'
-        )
+        kl_loss = self.kl_loss(mu, logstd)
+        mse_loss = torch.nn.functional.mse_loss(yhat, y, reduction='mean')
 
-        return kl_loss
+        return kl_loss + mse_loss
 
 
 class VGAE(VAE):
@@ -482,9 +498,12 @@ class VGAE(VAE):
             The output samples.
         """
 
-        self.mu_, self.logstd_ = self.encoder_(x, edge_index, *args, **kwargs)
-        z = self.reparametrize(self.mu_, self.logstd_)
+        mu, logstd = self.encoder_(x, edge_index, *args, **kwargs)
+        z = self.reparametrize(mu, logstd)
         x = self.decoder_(z)
+
+        if self.training:
+            return mu, logstd, x
 
         return x
 
@@ -504,7 +523,7 @@ class VGAE(VAE):
             The latent samples.
         """
 
-        self.mu_, self.logstd_ = self.encoder_(x, edge_index, *args, **kwargs)
-        z = self.reparametrize(self.mu_, self.logstd_)
+        mu, logstd = self.encoder_(x, edge_index, *args, **kwargs)
+        z = self.reparametrize(mu, logstd)
 
         return z

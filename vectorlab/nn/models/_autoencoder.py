@@ -182,7 +182,7 @@ class GAE(AE):
 
 
 class FastGAE(GAE):
-    r"""A faster GNN based Auto-Encoder.
+    r"""A fast GNN based Auto-Encoder.
 
     This is a faster version of GAE. During training process, FastGAE only
     infers the edge probabilities of given positive and negative edge index
@@ -220,8 +220,10 @@ class FastGAE(GAE):
 
         Returns
         -------
-        tensor
-            The latent or output samples.
+        z : tensor
+            The latent samples in train mode.
+        x : tensor
+            The output samples in eval mode.
         """
 
         z = self.encoder_(x, edge_index, *args, **kwargs)
@@ -242,6 +244,10 @@ class FastGAE(GAE):
 
         Parameters
         ----------
+        z : tensor
+            The latent samples.
+        pos_edge_index : tensor
+            The positive edge index.
         neg_edge_index : tensor, optional
             The negative edge index.
 

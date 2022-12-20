@@ -21,11 +21,11 @@ net = vectorlab.nn.models.FastGAE(
 )
 
 explorer = vectorlab.nn.Explorer(
-    net, net.loss,
+    net, lambda z: net.graph_recon_loss(),
     train_loader_fn='node_dataloader',
     batch_input='data',
     net_input='data.x, data.pos_edge_label_index',
-    loss_input='data.pos_edge_label_index, data.neg_edge_label_index',
+    loss_input=None,
     num_epochs=200,
     learning_rate=1e-2,
     earlystopping_fn=None,

@@ -5,7 +5,11 @@ from sklearn.svm import LinearSVC
 from sklearn.metrics import precision_recall_fscore_support
 
 dataset = torch_geometric.datasets.KarateClub()
-torch_geometric.utils.train_test_split_edges(dataset.data)
+transform = torch_geometric.transforms.RandomLinkSplit(
+    is_undirected=True,
+    split_labels=True
+)
+train_data, val_data, test_data = transform(dataset.data)
 
 net = vectorlab.nn.models.GAE(
     encoder=torch_geometric.nn.models.GCN(
@@ -21,17 +25,17 @@ explorer = vectorlab.nn.Explorer(
     net, loss_fn,
     train_loader_fn='node_dataloader',
     batch_input='data',
-    net_input='data.x, data.train_pos_edge_index',
-    loss_input='data.train_pos_edge_index',
+    net_input='data.x, data.pos_edge_label_index',
+    loss_input='data.pos_edge_label_index, data.neg_edge_label_index',
     num_epochs=200,
     learning_rate=1e-2,
     earlystopping_fn=None,
     writer=False,
     device='cpu'
 )
-explorer.train(dataset, verbose=2, save_best=False, save_last=False)
+explorer.train([train_data], verbose=2, save_best=False, save_last=False)
 
-z = explorer.latent(dataset)
+z = explorer.latent([train_data])
 y = dataset.data.y.numpy()
 
 clf = LinearSVC().fit(z, y)

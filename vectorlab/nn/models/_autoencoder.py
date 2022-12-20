@@ -224,16 +224,16 @@ class FastGAE(GAE):
             The latent or output samples.
         """
 
-        self.edge_index_ = edge_index
-        self.z_ = self.encoder_(x, edge_index, *args, **kwargs)
+        z = self.encoder_(x, edge_index, *args, **kwargs)
 
-        if not self.training:
-            x = self.decoder_(self.z_)
-            return x
+        if self.training:
+            return z
 
-        return self.z_
+        x = self.decoder_(z)
 
-    def graph_recon_loss(self, neg_edge_index=None):
+        return x
+
+    def graph_recon_loss(self, z, pos_edge_index, neg_edge_index=None):
         r"""Compute graph reconstruction loss of currest FastGAE.
 
         It will use the latest obtained latest representation
@@ -251,16 +251,14 @@ class FastGAE(GAE):
             The graph reconstruction loss.
         """
 
-        pos_edge_index = self.edge_index_
-
         if neg_edge_index is None:
             neg_edge_index = negative_sampling(
                 pos_edge_index,
-                num_nodes=self.z_.shape[0]
+                num_nodes=z.shape[0]
             )
 
-        pos_prob = self.decoder_(self.z_, pos_edge_index)
-        neg_prob = self.decoder_(self.z_, neg_edge_index)
+        pos_prob = self.decoder_(z, pos_edge_index)
+        neg_prob = self.decoder_(z, neg_edge_index)
 
         pos_loss = - pos_prob.log().clamp_min_(-100).mean()
         neg_loss = - (1 - neg_prob).log().clamp_min_(-100).mean()

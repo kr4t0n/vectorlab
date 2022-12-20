@@ -35,14 +35,8 @@ vae_net = vectorlab.nn.models.VAE(
         sigmoid=True
     )
 )
-
-
-def vae_loss_fn(y_hat, y):
-    return torch.nn.MSELoss()(y_hat, y) + vae_net.kl_loss()
-
-
 explorer = vectorlab.nn.Explorer(
-    vae_net, vae_loss_fn,
+    vae_net, vae_net.loss,
     batch_input='X', net_input='X', loss_input='X',
     num_epochs=10
 )

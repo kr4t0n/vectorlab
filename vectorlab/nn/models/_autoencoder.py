@@ -221,9 +221,9 @@ class FastGAE(GAE):
         Returns
         -------
         z : tensor
-            The latent samples in train mode.
+            The latent samples for train mode.
         x : tensor
-            The output samples in eval mode.
+            The output samples for eval mode.
         """
 
         z = self.encoder_(x, edge_index, *args, **kwargs)
@@ -400,7 +400,11 @@ class VAE(AE):
 
         Returns
         -------
-        tensor
+        mu : tensor
+            The mean of samples for train mode.
+        logstd : tensor
+            The log standard deviation of samples for train mode.
+        x : tensor
             The output samples.
         """
 
@@ -432,12 +436,10 @@ class VAE(AE):
 
         return z
 
-    def kl_loss(self, mu, logstd):
-        r"""Compute the kl loss of VAE.
+    def vae_loss(self, mu, logstd, yhat, y):
+        r"""Compute the loss of VAE.
 
-        It will use the latest obtained mean and log standard
-        deviation of samples in the forward pass to compute
-        KL loss.
+        The loss of VAE contains two parts, kl loss and mse loss.
 
         Parameters
         ----------
@@ -445,16 +447,10 @@ class VAE(AE):
             The mean of samples.
         logstd : tensor
             The log standard deviation of samples.
-        """
-
-        loss = F.kl_with_std_norm(mu, logstd, reduction='batchmean')
-
-        return loss
-
-    def loss(self, mu, logstd, yhat, y):
-        r"""Compute the loss of VAE.
-
-        The loss of VAE contains two parts, kl loss and mse loss.
+        yhat : tensor
+            The output samples.
+        y : tensor
+            The true samples.
 
         Returns
         -------
@@ -462,7 +458,7 @@ class VAE(AE):
             The loss of VAE.
         """
 
-        kl_loss = self.kl_loss(mu, logstd)
+        kl_loss = F.kl_with_std_norm(mu, logstd, reduction='batchmean')
         mse_loss = torch.nn.functional.mse_loss(yhat, y, reduction='mean')
 
         return kl_loss + mse_loss

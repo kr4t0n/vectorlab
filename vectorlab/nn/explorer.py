@@ -641,8 +641,6 @@ class Explorer(SLMixin):
             The dictionary contained the evaluation metrics.
         """
 
-        self.net_.eval()
-
         accumulator = Accumulator(2, ['loss', 'n_samples'])
 
         with torch.no_grad():
@@ -692,8 +690,6 @@ class Explorer(SLMixin):
         metric : dict
             The dictionary contained the evaluation metrics.
         """
-
-        self.net_.eval()
 
         accumulator = Accumulator(3, ['loss', 'acc', 'n_samples'])
 

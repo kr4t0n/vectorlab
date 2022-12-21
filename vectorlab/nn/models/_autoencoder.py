@@ -530,3 +530,48 @@ class VGAE(VAE):
         z = self.reparametrize(mu, logstd)
 
         return z
+
+    def loss_fn(self, mu, logstd, adj, pos_edge_index, neg_edge_index=None):
+        r"""Compute the loss of VGAE.
+
+        The loss of VGAE contains two parts, kl losss and graph reconstruction
+        loss. It will use the latest mean and log standard devation in the
+        forward pass to compute kl loss, and use the output adjacency matrix
+        with positive edge index and negative edge index to compute graph
+        reconstruction loss.
+
+        Parameters
+        ----------
+        mu : tensor
+            The mean of samples.
+        logstd : tensor
+            The log standard deviation of samples.
+        adj : tensor
+            The adjacency matrix of reconstructed graph.
+        pos_edge_index : tensor
+            The positive edge index
+        neg_edge_index : tensro, optional
+            The negative edge index.
+
+        Returns
+        -------
+        loss : tensor
+            The loss of VGAE.
+        """
+
+        if neg_edge_index is None:
+            neg_edge_index = negative_sampling(
+                pos_edge_index,
+                num_nodes=adj.shape[0]
+            )
+
+        kl_loss = F.kl_with_std_norm(
+            mu, logstd,
+            reduction='batchmean'
+        )
+        graph_recon_loss = F.graph_recon_loss(
+            adj, pos_edge_index, neg_edge_index,
+            reduction='mean'
+        )
+
+        return kl_loss + graph_recon_loss

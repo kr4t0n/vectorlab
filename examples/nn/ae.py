@@ -36,7 +36,7 @@ vae_net = vectorlab.nn.models.VAE(
     )
 )
 explorer = vectorlab.nn.Explorer(
-    vae_net, vae_net.loss,
+    vae_net, vae_net.loss_fn,
     batch_input='X', net_input='X', loss_input='X',
     num_epochs=10
 )

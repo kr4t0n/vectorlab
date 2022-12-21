@@ -21,7 +21,7 @@ net = vectorlab.nn.models.FastGAE(
 )
 
 explorer = vectorlab.nn.Explorer(
-    net, net.graph_recon_loss,
+    net, net.loss_fn,
     train_loader_fn='node_dataloader',
     batch_input='data',
     net_input='data.x, data.pos_edge_label_index',

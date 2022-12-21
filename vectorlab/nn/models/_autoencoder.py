@@ -235,11 +235,11 @@ class FastGAE(GAE):
 
         return x
 
-    def graph_recon_loss(self, z, pos_edge_index, neg_edge_index=None):
+    def loss_fn(self, z, pos_edge_index, neg_edge_index=None):
         r"""Compute graph reconstruction loss of currest FastGAE.
 
-        It will use the latest obtained latest representation
-        and positive edge index in the forward pass to compute
+        It will use the latest obtained latest representation in
+        the forward pass, positive and negative edge index to compute
         current graph reconstruction loss.
 
         Parameters
@@ -436,10 +436,13 @@ class VAE(AE):
 
         return z
 
-    def vae_loss(self, mu, logstd, yhat, y):
+    def loss_fn(self, mu, logstd, yhat, y):
         r"""Compute the loss of VAE.
 
         The loss of VAE contains two parts, kl loss and mse loss.
+        It will use the latest mean and log standard deviation
+        in the forward pass to compute kl loss, and use output
+        samples compared with true samples to obtain mse loss.
 
         Parameters
         ----------

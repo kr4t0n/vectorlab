@@ -575,3 +575,89 @@ class VGAE(VAE):
         )
 
         return kl_loss + graph_recon_loss
+
+
+class FastVGAE(VGAE, FastGAE):
+    r"""A fast GNN based Variational Auto-encoder.
+
+    Thie is a faster version of VGAE. During training porcess, FastVGAE only
+    infers the edge probabilities of given positive and negative edge index
+    rather than the whole graph of all pairs of nodes.
+
+    Parameters
+    ----------
+    encoder : torch.nn.Module
+        The encoder used to encode inputs to latent space.
+    decoder : torch.nn.Module
+        The decoder used to reconstruct inputs from latent space.
+
+    Attributes
+    ----------
+    encoder_ : torch.nn.Module
+        The user defined encoder.
+    decoder_ : torch.nn.Module
+        The user defined decoder.
+    """
+
+    def forward(self, x, edge_index, *args, **kwargs):
+        r"""The forward process to obtain output samples.
+
+        Parameters
+        ----------
+        x : tensor
+            The node features of the graph.
+        edge_index : tensor
+            The adjacency matrix of the graph.
+
+        Returns
+        -------
+        tensor
+            The output samples.
+        """
+
+        mu, logstd = self.encoder_(x, edge_index, *args, **kwargs)
+        z = self.reparametrize(mu, logstd)
+
+        if self.training:
+            return mu, logstd, z
+
+        x = self.decoder_(z)
+
+        return x
+
+    def loss_fn(self, mu, logstd, z, pos_edge_index, neg_edge_index=None):
+        r"""Compute the loss of FastVGAE.
+
+        The loss of FastVGAE contains two parts, kl losss and graph
+        reconstruction loss. It will use the latest mean and log standard
+        devation in the forward pass to compute kl loss, and compute the
+        graph reconstruciton loss in the same way as FastGAE.
+
+        Parameters
+        ----------
+        mu : tensor
+            The mean of samples.
+        logstd : tensor
+            The log standard deviation of samples.
+        z : tensor
+            The latent samples.
+        pos_edge_index : tensor
+            The positive edge index
+        neg_edge_index : tensro, optional
+            The negative edge index.
+
+        Returns
+        -------
+        loss : tensor
+            The loss of VGAE.
+        """
+
+        kl_loss = F.kl_with_std_norm(
+            mu, logstd,
+            reduction='batchmean'
+        )
+        graph_recon_loss = FastGAE.loss_fn(
+            z, pos_edge_index, neg_edge_index
+        )
+
+        return kl_loss + graph_recon_loss

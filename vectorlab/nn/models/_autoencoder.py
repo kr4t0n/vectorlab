@@ -643,7 +643,7 @@ class FastVGAE(VGAE, FastGAE):
             The latent samples.
         pos_edge_index : tensor
             The positive edge index
-        neg_edge_index : tensro, optional
+        neg_edge_index : tensor, optional
             The negative edge index.
 
         Returns

@@ -1,4 +1,5 @@
 from ._mlp import *
+from ._basic_gnn import *
 from ._encoder import *
 from ._decoder import *
 from ._gnn_decoder import *

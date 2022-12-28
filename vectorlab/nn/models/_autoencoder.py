@@ -656,6 +656,9 @@ class FastVGAE(VGAE, FastGAE):
             mu, logstd,
             reduction='batchmean'
         )
+        # mean over number of nodes
+        kl_loss /= z.shape[0]
+
         graph_recon_loss = FastGAE.loss_fn(
             self, z, pos_edge_index, neg_edge_index
         )

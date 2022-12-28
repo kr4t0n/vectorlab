@@ -4,7 +4,7 @@ import pytest
 from vectorlab.nn.models._encoder import (
     MLPEncoder,
     GRUEncoder, LSTMEncoder,
-    MLPVarEncoder
+    VarMLPEncoder
 )
 
 
@@ -26,7 +26,7 @@ def test_mlp_encoder(in_dims, num_layers, bias, dropout, plain_last):
         bias=bias,
         plain_last=plain_last
     )
-    var_encoder = MLPVarEncoder(
+    var_encoder = VarMLPEncoder(
         in_dims=in_dims, hidden_dims=hidden_dims,
         num_layers=num_layers,
         dropout=dropout,

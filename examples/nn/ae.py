@@ -27,7 +27,7 @@ explorer.train(dataset, verbose=2, save_last=False)
 
 # ============= VAE ==============
 vae_net = vectorlab.nn.models.VAE(
-    encoder=vectorlab.nn.models.MLPVarEncoder(
+    encoder=vectorlab.nn.models.VarMLPEncoder(
         in_dims=3, hidden_dims=8, num_layers=2
     ),
     decoder=vectorlab.nn.models.MLPDecoder(

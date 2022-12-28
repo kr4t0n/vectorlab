@@ -831,7 +831,7 @@ class _BasicVarEncoder(_BasicEncoder):
         return
 
 
-class _BasicGNNVarEncoder(_BasicVarEncoder):
+class _BasicVarGNNEncoder(_BasicVarEncoder):
     r"""An abstract basic GNN variational encoder class.
 
     Parameters
@@ -901,7 +901,7 @@ class _BasicGNNVarEncoder(_BasicVarEncoder):
         return mu, logstd
 
 
-class MLPVarEncoder(_BasicVarEncoder):
+class VarMLPEncoder(_BasicVarEncoder):
     r"""An abstract basic variational encoder class.
 
     Parameters
@@ -985,7 +985,7 @@ class MLPVarEncoder(_BasicVarEncoder):
         return mu, logstd
 
 
-class GCNVarEncoder(_BasicGNNVarEncoder):
+class VarGCNEncoder(_BasicVarGNNEncoder):
     r"""An GCNConv based variational encoder.
 
     Parameters
@@ -1046,7 +1046,7 @@ class GCNVarEncoder(_BasicGNNVarEncoder):
         return encoder
 
 
-class GraphVarEncoder(_BasicGNNVarEncoder):
+class VarGraphEncoder(_BasicVarGNNEncoder):
     r"""An GraphConv based variational encoder.
 
     Parameters
@@ -1107,7 +1107,7 @@ class GraphVarEncoder(_BasicGNNVarEncoder):
         return encoder
 
 
-class GATVarEncoder(_BasicGNNVarEncoder):
+class VarGATEncoder(_BasicVarGNNEncoder):
     r"""An GATConv based variational encoder.
 
     Parameters
@@ -1168,7 +1168,7 @@ class GATVarEncoder(_BasicGNNVarEncoder):
         return encoder
 
 
-class GINVarEncoder(_BasicGNNVarEncoder):
+class VarGINEncoder(_BasicVarGNNEncoder):
     r"""An GINConv based variational encoder.
 
     Parameters

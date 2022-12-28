@@ -62,7 +62,7 @@ def kl_with_std_norm(mu, logstd, reduction='mean'):
 
     if reduction == 'batchmean':
         reduced = apply_loss_reduction(reduced, reduction='sum')
-        reduced = reduced / mu.size()[0]
+        reduced = reduced / mu.shape[0]
     else:
         reduced = apply_loss_reduction(reduced, reduction=reduction)
 

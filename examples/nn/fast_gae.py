@@ -12,9 +12,9 @@ transform = torch_geometric.transforms.RandomLinkSplit(
 train_data, val_data, test_data = transform(dataset.data)
 
 net = vectorlab.nn.models.FastGAE(
-    encoder=torch_geometric.nn.models.GCN(
-        in_channels=dataset.num_node_features,
-        hidden_channels=16,
+    encoder=vectorlab.nn.models.GCNEncoder(
+        in_dims=dataset.num_node_features,
+        hidden_dims=16,
         num_layers=3
     ),
     decoder=vectorlab.nn.models.InnerProducetDecoder(sigmoid=True)

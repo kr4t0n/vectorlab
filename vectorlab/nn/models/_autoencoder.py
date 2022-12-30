@@ -257,6 +257,8 @@ class FastGAE(GAE):
             The graph reconstruction loss.
         """
 
+        eps = 1e-16
+
         if neg_edge_index is None:
             neg_edge_index = negative_sampling(
                 pos_edge_index,
@@ -266,8 +268,8 @@ class FastGAE(GAE):
         pos_prob = self.decoder_(z, pos_edge_index)
         neg_prob = self.decoder_(z, neg_edge_index)
 
-        pos_loss = - pos_prob.log().clamp_min_(-100).mean()
-        neg_loss = - (1 - neg_prob).log().clamp_min_(-100).mean()
+        pos_loss = - (pos_prob + eps).log().mean()
+        neg_loss = - ((1 - neg_prob) + eps).log().mean()
 
         return pos_loss + neg_loss
 

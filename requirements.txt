@@ -28,7 +28,20 @@ pillow
 ###########
 torch
 
-# utilities module #
+# PyTorch releated #
+####################
+torchinfo
+tensorboard
+
+# PyTorch Geometric #
+#####################
+torch-sparse
+torch-cluster
+torch-scatter
+torch-spline-conv
+torch-geometric
+
+# utils module #
 ####################
 pytz
 dill

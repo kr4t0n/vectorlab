@@ -4,7 +4,7 @@
 
 [![PyPI Latest Release](https://img.shields.io/pypi/v/vectorlab)](https://pypi.org/project/vectorlab/)
 [![Package Status](https://img.shields.io/pypi/status/vectorlab)](https://pypi.org/project/vectorlab/)
-[![Testing Status](https://img.shields.io/github/workflow/status/Kr4t0n/vectorlab/Testing?label=Testing&logo=github)](https://github.com/Kr4t0n/vectorlab/actions/workflows/testing.yml)
+[![Testing Status](https://img.shields.io/github/actions/workflow/status/Kr4t0n/vectorlab/testing.yml?label=Testing&logo=github)](https://github.com/Kr4t0n/vectorlab/actions/workflows/testing.yml)
 [![Coverage](https://codecov.io/github/Kr4t0n/vectorlab/coverage.svg?branch=dev-feat)](https://codecov.io/gh/Kr4t0n/vectorlab)
 [![License](https://img.shields.io/pypi/l/vectorlab)](https://github.com/Kr4t0n/vectorlab/blob/main/LICENSE.txt)
 [![Python Version](https://img.shields.io/pypi/pyversions/vectorlab)](https://pypi.org/project/vectorlab/)

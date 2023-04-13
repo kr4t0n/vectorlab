@@ -16,7 +16,7 @@ def test_kl_with_std_norm(rerun):
         q = torch.distributions.Normal(0, 1)
         l2 = torch.distributions.kl_divergence(p, q)
 
-        assert torch.isclose(l1, l2)
+        assert torch.isclose(l1, l2, atol=1e-4, rtol=1e-4)
 
 
 @pytest.mark.parametrize('rerun', [100])

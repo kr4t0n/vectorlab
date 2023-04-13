@@ -11,4 +11,4 @@ from . import utils
 from . import vector
 
 # define VectorLab version
-__version__ = '1.0.1.dev0'
+__version__ = '1.0.1'

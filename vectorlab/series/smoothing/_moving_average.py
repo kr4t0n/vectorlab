@@ -52,7 +52,7 @@ class MovingAverage(TransformerMixin):
 
     def __init__(self, window_size):
 
-        super(MovingAverage, self).__init__()
+        super().__init__()
 
         window_size = check_valid_int(
             window_size,
@@ -197,7 +197,7 @@ class WeightedMovingAverage(TransformerMixin):
 
     def __init__(self, window_size):
 
-        super(WeightedMovingAverage, self).__init__()
+        super().__init__()
 
         window_size = check_valid_int(
             window_size,
@@ -344,7 +344,7 @@ class ExpWeightedMovingAverage(TransformerMixin):
 
     def __init__(self, alpha):
 
-        super(ExpWeightedMovingAverage, self).__init__()
+        super().__init__()
 
         alpha = check_valid_float(
             alpha,

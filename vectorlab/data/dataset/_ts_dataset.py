@@ -55,7 +55,7 @@ class TSData(SLMixin):
 
     def __init__(self):
 
-        super(TSData, self).__init__()
+        super().__init__()
 
         return
 
@@ -698,7 +698,7 @@ class TSDataset(SLMixin):
 
     def __init__(self):
 
-        super(TSDataset, self).__init__()
+        super().__init__()
 
         return
 

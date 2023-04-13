@@ -19,11 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ['3.8', '3.9', '3.10']
-        torch-version: [1.10.0, 1.11.0, 1.12.0]
-        
-        exclude:
-          - python-version: 3.10   # compatible only to torch over 1.11.0
-            torch-version: 1.10.0
+        torch-version: [1.13.0]
     
     steps:
       - uses: actions/checkout@v3
@@ -42,7 +38,7 @@ jobs:
       
       - name: Install PyTorch Geometric
         run: |
-          pip install torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://data.pyg.org/whl/torch-${{ matrix.torch-version }}+cpu.html
+          pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-${{ matrix.torch-version }}+cpu.html
           pip install torch-geometric
       
       - name: Install vectorlab package and test dependencies

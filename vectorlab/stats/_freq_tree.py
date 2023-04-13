@@ -40,7 +40,7 @@ class FreqTreeNode(KVNode):
 
     def __init__(self, key, value):
 
-        super(FreqTreeNode, self).__init__(key, value)
+        super().__init__(key, value)
 
         self.parent_ = None
         self.children_ = {}

@@ -106,15 +106,6 @@ def test_kl_div():
     assert np.isclose(kl_div(X1, X1), 0)
     assert np.isclose(kl_div(Y1, Y1), 0)
 
-    # test symmetry
-    # kl_div may need a larger atol since the result
-    # may vary every time
-    assert np.isclose(
-        kl_div(X1, Y1),
-        kl_div(Y1, X1),
-        atol=1e-3
-    )
-
 
 def kl_div_efficency():
     kl_div(X1, Y1)

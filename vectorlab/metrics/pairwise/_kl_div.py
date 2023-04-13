@@ -6,7 +6,7 @@ is different from a second.
 
 import numpy as np
 
-from scipy import stats
+from scipy import stats, integrate
 
 from ...utils._check import check_nd_array, check_pairwise_1d_array
 
@@ -84,32 +84,27 @@ def kl_div(X, Y=None,
     kde_X = stats.gaussian_kde(X, weights=weights_X)
     kde_Y = stats.gaussian_kde(Y, weights=weights_Y)
 
-    min_value = np.amin(np.concatenate((X, Y)))
-    max_value = np.amax(np.concatenate((X, Y)))
-    points_num = \
-        (X.shape[0] if weights_X is None else np.sum(weights_X)) + \
-        (Y.shape[0] if weights_Y is None else np.sum(weights_Y))
+    X_mu = integrate.quad(
+        lambda x: x * kde_X.pdf(x),
+        a=-np.Inf, b=np.Inf
+    )[0]
+    X_var = integrate.quad(
+        lambda x: (x ** 2) * kde_X.pdf(x),
+        a=-np.inf, b=np.inf
+    )[0] - X_mu ** 2
 
-    incr = (max_value - min_value) / np.sqrt(points_num)
-    samples = [
-        min_value + i * incr
-        for i in range(int(np.sqrt(points_num)))
-    ]
+    Y_mu = integrate.quad(
+        lambda y: y * kde_Y.pdf(y),
+        a=-np.Inf, b=np.Inf
+    )[0]
+    Y_var = integrate.quad(
+        lambda y: (y ** 2) * kde_Y.pdf(y),
+        a=-np.inf, b=np.inf
+    )[0] - Y_mu ** 2
 
-    p_X = kde_X(samples)
-    p_Y = kde_Y(samples)
+    var_ratio = X_var / Y_var
+    t1 = ((X_mu - Y_mu) ** 2) / Y_var
 
-    eps = max(
-        min(
-            np.amin(p_X[p_X != 0]),
-            np.amin(p_Y[p_Y != 0])
-        ),
-        eps
-    )
-
-    p_X[p_X < eps] = eps
-    p_Y[p_Y < eps] = eps
-
-    divergence = stats.entropy(p_X, p_Y)
+    divergence = 0.5 * (var_ratio + t1 - 1 - np.log(var_ratio))
 
     return divergence

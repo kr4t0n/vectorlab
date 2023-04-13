@@ -93,7 +93,7 @@ class HoltWinters(TransformerMixin):
                  seasonal=None, seasonal_periods=None,
                  initialization_method='estimated'):
 
-        super(HoltWinters, self).__init__()
+        super().__init__()
 
         if trend:
             trend = check_valid_option(

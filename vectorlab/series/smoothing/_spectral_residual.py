@@ -96,7 +96,7 @@ class SpectralResidual(TransformerMixin):
     def __init__(self, window_size,
                  extend_num=0, look_ahead=5):
 
-        super(SpectralResidual, self).__init__()
+        super().__init__()
 
         window_size = check_valid_int(
             window_size,

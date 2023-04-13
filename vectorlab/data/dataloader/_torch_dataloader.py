@@ -87,16 +87,23 @@ class PadSeqDataLoader(DataLoader):
     ----------
     batch_first : bool
         Whether pad sequence in a batch first manner or not.
+
+    Attributes
+    ----------
+    batch_first : bool
+        Whether pad sequence in a batch first manner or not.
     """
 
     def __init__(self, *args, batch_first=False, **kwargs):
 
-        super(PadSeqDataLoader, self).__init__(
+        super().__init__(
             *args, **kwargs,
             collate_fn=lambda batch: pad_sequence_collate(
                 batch, batch_first=batch_first
             )
         )
+
+        self.batch_first = batch_first
 
         return
 
@@ -111,15 +118,22 @@ class PadSeqsDataLoader(DataLoader):
     ----------
     batch_first : bool
         Whether pad sequence in a batch first manner or not.
+
+    Attributes
+    ----------
+    batch_first : bool
+        Whether pad sequence in a batch first manner or not.
     """
 
     def __init__(self, *args, batch_first=False, **kwargs):
 
-        super(PadSeqsDataLoader, self).__init__(
+        super().__init__(
             *args, **kwargs,
             collate_fn=lambda batch: pad_sequences_collate(
                 batch, batch_first=batch_first
             )
         )
+
+        self.batch_first = batch_first
 
         return

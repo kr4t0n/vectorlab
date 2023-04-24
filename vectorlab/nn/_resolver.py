@@ -1,8 +1,13 @@
 import torch
 import torch_geometric
+import importlib.metadata as importlib_metadata
+
+from packaging.version import parse
 
 from . import _earlystopping
 from ..data import dataloader as _dataloader
+
+_torch_version = importlib_metadata.version('torch')
 
 
 def normalize_string(s):
@@ -151,7 +156,10 @@ def scheduler_resolver(query):
         The resolved scheduler class.
     """
 
-    base_class = torch.optim.lr_scheduler._LRScheduler  # noqa
+    if parse(_torch_version) >= parse('2.0.0'):
+        base_class = torch.optim.lr_scheduler.LRScheduler
+    else:
+        base_class = torch.optim.lr_scheduler._LRScheduler  # noqa
 
     schedulers = [
         scheduler

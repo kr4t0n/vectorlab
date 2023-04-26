@@ -1,4 +1,5 @@
 import time
+import uuid
 import numpy as np
 
 from tqdm.auto import tqdm
@@ -8,13 +9,13 @@ import torch
 
 from torchinfo import summary
 from torch.utils.data import Subset
-from torch.utils.tensorboard import SummaryWriter
 from torch_geometric.data import Data, Batch
 
 from ..base import SLMixin, Accumulator
 from ._resolver import (
     dataloader_resolver,
-    optimizer_resolver, scheduler_resolver, earlystopping_resolver
+    optimizer_resolver, scheduler_resolver, earlystopping_resolver,
+    logger_resolver
 )
 
 
@@ -82,16 +83,18 @@ class Explorer(SLMixin):
         The montior metric for earlystopping.
     earlystopping_kwarg : dict
         The extra arguments for initialize the earlystopping.
+    logger_fn : str, callable
+        The logger to be used to log the metrics.
+    logger_project : str
+        The name of the current project.
+    logger_id : str
+        The name of the current experiment id.
+    logger_freq : int
+        The frequency to log the metrics.
     device : str, list, optional
         If given specified device or a list of devices, the explorer will use
         such device(s) as desired. If no device is specified, the explorer
         will automatically choose the device(s).
-    writer : bool
-        Whether to use summary writer or not.
-    writer_dir : str
-        The directory to store the information from summary writer.
-    writer_comment : str
-        The extra comment used to initialize the summary writer.
     parameters_dict : dict
         The extra parameters dictionary to specify.
 
@@ -149,20 +152,18 @@ class Explorer(SLMixin):
         The extra arguments for initialize the earlystopping.
     earlystopping_ : callable
         The earlystopping to break epoch iteration.
+    logger_fn_ : str, callable
+        The logger to be used to log the metrics.
+    logger_project_ : str
+        The name of the current project.
+    logger_id_ : str
+        The name of the current experiment id.
+    logger_freq_ : int
+        The frequency to log the metrics.
     device_ : torch.device
         The first device used to store the neural network and data.
     devices_ : list
         The list of potential devices that would be used.
-    writer_ : bool
-        If use summary writer of tensorboard to log the process.
-    train_writer_ : torch.utils.tensorboard.SummaryWriter
-        The summary writer for training process.
-    valid_writer_ : torch.utils.tensorboard.SummaryWriter
-        The summary writer for validation process.
-    writer_dir_ : str
-        The log directory for summary writer.
-    writer_comment : str
-        The comment used to identify the summary writer.
     parameters_dict_ : dict
         The dictionary stored the parameters that initialized the
         explorer.
@@ -201,8 +202,10 @@ class Explorer(SLMixin):
                  scheduler_kwargs=None,
                  earlystopping_fn='desc_es',
                  earlystopping_metric='loss', earlystopping_kwargs=None,
+                 logger_fn='tensorboard',
+                 logger_project='vectorlab_explorer_project', logger_id=None,
+                 logger_freq=1,
                  device=None,
-                 writer=False, writer_dir=None, writer_comment='',
                  parameters_dict=None):
 
         super().__init__()
@@ -261,9 +264,11 @@ class Explorer(SLMixin):
         self.earlystopping_metric_ = earlystopping_metric
         self._init_earlystopping()
 
-        self.writer_ = writer
-        self.writer_dir_ = writer_dir
-        self.writer_comment_ = writer_comment
+        self.logger_fn_ = logger_fn
+        self.logger_project_ = logger_project
+        self.logger_id_ = logger_id
+        self.logger_freq_ = logger_freq
+        self._init_logger()
 
         self._init_parameters_dict_(parameters_dict)
 
@@ -401,6 +406,21 @@ class Explorer(SLMixin):
             self.earlystopping_ = self.earlystopping_fn_(
                 **self.earlystopping_kwargs_
             )
+
+        return self
+
+    def _init_logger(self):
+        r"""Initialize proper logger
+
+        Returns
+        -------
+        self : Explorer
+            Return itself.
+        """
+        self.logger_fn_ = logger_resolver(self.logger_fn_)
+
+        if self.logger_id_ is None:
+            self.logger_id_ = str(uuid.uuid4())
 
         return self
 
@@ -740,6 +760,44 @@ class Explorer(SLMixin):
 
         return self._loss_evaluate(loader)
 
+    def _metrics(self, train_loader, valid_loader=None):
+        """Return the evaluated metrics from train and valid loader.
+
+        Parameters
+        ----------
+        train_loader : torch.utils.data.DataLoader
+            The data loader containing training data to evaluate the trained
+            neural network
+        valid_loader : torch.utils.data.DataLoader
+            The data loader containing validation data to evaluate the trained
+            neural network.
+
+        Returns
+        -------
+        metrics : dict
+            The dictionary contained the evaluation metrics for verfication.
+            If valid_loader is provided, it will be valid_metrics, otherwise,
+            it will be train_metrics.
+        nested_metrics : dict
+            The dictionary contained the evaluation metrics. The metrics are
+            in a nested representation of
+            {'train': {train_metrics}, 'valid': {valid_metrics}}.
+        """
+
+        train_metrics = self._evaluate(train_loader)
+
+        if valid_loader is None:
+            metrics = train_metrics
+            nested_metrics = {'train': train_metrics}
+
+            return metrics, nested_metrics
+
+        valid_metrics = self._evaluate(valid_loader)
+        metrics = valid_metrics
+        nested_metrics = {'train': train_metrics, 'valid': valid_metrics}
+
+        return metrics, nested_metrics
+
     def _inference(self, loader, verbose=0):
         r"""This is the abstract inference method.
 
@@ -872,23 +930,24 @@ class Explorer(SLMixin):
 
         self.best_loss_ = np.Inf
 
-        if self.writer_:
-            self.train_writer_ = SummaryWriter(
-                log_dir=f'{self.writer_dir_}{self.writer_comment_}_train'
-                        if self.writer_dir_ else self.writer_dir_,
-                comment=f'{self.writer_comment_}_train'
+        if self.logger_fn_ is not None:
+            logger = self.logger_fn_(
+                self.logger_project_, self.logger_id_,
+                freq=self.logger_freq_
             )
+        else:
+            logger = None
 
-            if valid_dataset is not None:
-                self.valid_writer_ = SummaryWriter(
-                    log_dir=f'{self.writer_dir_}{self.writer_comment_}_valid'
-                            if self.writer_dir_ else self.writer_dir_,
-                    comment=f'{self.writer_comment_}_valid'
-                )
+        if logger or self.earlystopping_ or save_best or verbose > 1:
+            _calc_metrics = True
+        else:
+            _calc_metrics = False
 
         self.net_.to(self.device_)
         if hasattr(self.loss_fn_, 'to'):
             self.loss_fn_.to(self.device_)
+
+        logger.watch(self.net_, self.loss_fn_)
 
         train_loader = self.train_loader_fn_(
             train_dataset,
@@ -906,6 +965,8 @@ class Explorer(SLMixin):
                 shuffle=False,
                 **self.valid_loader_kwargs_
             )
+        else:
+            valid_loader = None
 
         pbar = tqdm(
             range(self.num_epochs_),
@@ -915,85 +976,50 @@ class Explorer(SLMixin):
         for epoch in pbar:
             self._train(train_loader)
 
-            if self.writer_ or self.earlystopping_ or save_best or verbose > 1:
-                train_metrics_ = self._evaluate(train_loader)
+            if _calc_metrics:
+                metrics_, nested_metrics_ = self._metrics(
+                    train_loader, valid_loader
+                )
                 metric_repr_ = ', '.join(
                     [
                         f'{key}: {value:.3f}'
-                        for key, value in train_metrics_.items()
+                        for key, value in metrics_.items()
                     ]
                 )
-
-                if valid_dataset is not None:
-                    valid_metrics_ = self._evaluate(valid_loader)
-                    metric_repr_ = ', '.join(
-                        [
-                            f'{key}: {value:.3f}'
-                            for key, value in train_metrics_.items()
-                        ]
-                    )
 
                 pbar.set_description(
                     f'Epoch: {epoch:0{self.epochs_len_}d}, {metric_repr_}'
                 )
 
             if self.earlystopping_:
-                if valid_dataset is None:
-                    self.earlystopping_.record_metric(
-                        train_metrics_[self.earlystopping_metric_]
-                    )
-                else:
-                    self.earlystopping_.record_metric(
-                        valid_metrics_[self.earlystopping_metric_]
-                    )
+                self.earlystopping_.record_metric(
+                    metrics_[self.earlystopping_metric_]
+                )
 
-            if self.writer_:
-                for metric, value in train_metrics_.items():
-                    self.train_writer_.add_scalar(metric, value, epoch)
-
-                if valid_dataset is not None:
-                    for metric, value in valid_metrics_.items():
-                        self.valid_writer_.add_scalar(metric, value, epoch)
+            if logger and (epoch % logger.freq_ == 0):
+                logger.log(nested_metrics_, step=epoch)
 
             if save_best:
-                if valid_dataset is None:
-                    if train_metrics_['loss'] < self.best_loss_:
-                        self.best_loss_ = train_metrics_['loss']
-                        self._save_best_model()
-                else:
-                    if valid_metrics_['loss'] < self.best_loss_:
-                        self.best_loss_ = valid_metrics_['loss']
-                        self._save_best_model()
+                if metrics_['loss'] < self.best_loss_:
+                    self.best_loss_ = metrics_['loss']
+                    self._save_best_model()
 
             if self.earlystopping_ and self.earlystopping_.is_done():
                 break
 
-        train_metrics_ = self._evaluate(train_loader)
-        self.train_loss_ = train_metrics_['loss']
+        _, nested_metrics_ = self._metrics(
+            train_loader, valid_loader
+        )
 
-        if self.writer_:
-            self.train_writer_.add_hparams(
-                self.parameters_dict_,
-                {
-                    'hparam/' + metric: value
-                    for metric, value in train_metrics_.items()
-                }
-            )
+        self.train_loss_ = nested_metrics_['train']['loss']
 
-        if valid_dataset is not None:
-            valid_metrics_ = self._evaluate(valid_loader)
-            self.valid_loss_ = valid_metrics_['loss']
-
-            if self.writer_:
-                self.valid_writer_.add_hparams(
-                    self.parameters_dict_,
-                    {
-                        'hparam/' + metric: value
-                        for metric, value in valid_metrics_.items()
-                    }
-                )
+        if valid_loader:
+            self.valid_loss_ = nested_metrics_['valid']['loss']
         else:
             self.valid_loss_ = np.Inf
+
+        if logger:
+            logger.log_params(self.parameters_dict_, nested_metrics_)
 
         if save_last:
             self._save_last_model()
@@ -1003,6 +1029,8 @@ class Explorer(SLMixin):
                 f'Result: train loss {self.train_loss_:.6f}, '
                 f'valid loss {self.valid_loss_:.6f}'
             )
+
+        logger.close()
 
         return self
 
@@ -1044,25 +1072,26 @@ class Explorer(SLMixin):
 
             (train_index, valid_index) = index
 
-            if self.writer_:
-                k_train_writer = SummaryWriter(
-                    log_dir=f'{self.writer_dir_}{self.writer_comment_}_'
-                            f'k_fold_{k}_train'
-                            if self.writer_dir_ else self.writer_dir_,
-                    comment=f'{self.writer_comment_}_k_fold_{k}_train'
+            if self.logger_fn_ is not None:
+                logger = self.logger_fn_(
+                    self.logger_project_, f'{self.logger_id_}-kfold-{k}',
+                    freq=self.logger_freq_
                 )
-                k_valid_writer = SummaryWriter(
-                    log_dir=f'{self.writer_dir_}{self.writer_comment_}_'
-                            f'k_fold_{k}_valid'
-                            if self.writer_dir_ else self.writer_dir_,
-                    comment=f'{self.writer_comment_}_k_fold_{k}_valid'
-                )
+            else:
+                logger = None
+
+            if logger or self.earlystopping_ or verbose > 1:
+                _calc_metrics = True
+            else:
+                _calc_metrics = False
 
             self.reset()
 
             self.net_.to(self.device_)
             if hasattr(self.loss_fn_, 'to'):
                 self.loss_fn_.to(self.device_)
+
+            logger.watch(self.net_, self.loss_fn_)
 
             k_train_dataset = Subset(train_dataset, train_index)
             k_valid_dataset = Subset(train_dataset, valid_index)
@@ -1090,69 +1119,56 @@ class Explorer(SLMixin):
             for epoch in pbar:
                 self._train(k_train_dataloader)
 
-                if self.writer_ or self.earlystopping_ or verbose > 1:
-                    k_train_metrics_ = self._evaluate(k_train_dataloader)
-                    k_valid_metrics_ = self._evaluate(k_valid_dataloader)
-
+                if _calc_metrics:
+                    k_metrics_, k_nested_metrics_ = self._metrics(
+                        k_train_dataloader, k_valid_dataloader
+                    )
                     metric_repr_ = ', '.join(
                         [
                             f'{key}: {value:.3f}'
-                            for key, value in k_valid_metrics_.items()
+                            for key, value in k_metrics_.items()
                         ]
                     )
+
                     pbar.set_description(
                         f'Epoch: {epoch:0{self.epochs_len_}d}, {metric_repr_}'
                     )
 
                 if self.earlystopping_:
                     self.earlystopping_.record_metric(
-                        k_valid_metrics_[self.earlystopping_metric_]
+                        k_metrics_[self.earlystopping_metric_]
                     )
 
-                if self.writer_:
-                    for metric, value in k_train_metrics_.items():
-                        k_train_writer.add_scalar(metric, value, epoch)
-
-                    for metric, value in k_valid_metrics_.items():
-                        k_valid_writer.add_scalar(metric, value, epoch)
+                if logger and (epoch % logger.freq_ == 0):
+                    logger.log(k_nested_metrics_, step=epoch)
 
                 if self.earlystopping_ and self.earlystopping_.is_done():
                     break
 
-            k_train_metrics_ = self._evaluate(k_train_dataloader)
-            k_valid_metrics_ = self._evaluate(k_valid_dataloader)
+            _, k_nested_metrics_ = self._metrics(
+                k_train_dataloader, k_valid_dataloader
+            )
 
-            if self.writer_:
-                k_train_writer.add_hparams(
-                    self.parameters_dict_,
-                    {
-                        'hparam/' + metric: value
-                        for metric, value in k_train_metrics_.items()
-                    }
-                )
-                k_valid_writer.add_hparams(
-                    self.parameters_dict_,
-                    {
-                        'hparam/' + metric: value
-                        for metric, value in k_valid_metrics_.items()
-                    }
-                )
+            if logger:
+                logger.log_params(self.parameters_dict_, k_nested_metrics_)
 
             accumulator.add(
                 {
-                    'k_train_loss': k_train_metrics_['loss'],
-                    'k_valid_loss': k_valid_metrics_['loss'],
+                    'k_train_loss': k_nested_metrics_['train']['loss'],
+                    'k_valid_loss': k_nested_metrics_['valid']['loss'],
                     'k': 1
                 }
             )
 
             if verbose:
-                k_train_loss_ = k_train_metrics_['loss']
-                k_valid_loss_ = k_valid_metrics_['loss']
+                k_train_loss_ = k_nested_metrics_['train']['loss']
+                k_valid_loss_ = k_nested_metrics_['valid']['loss']
                 print(
                     f'Fold {k}: train loss {k_train_loss_:.6f}, '
                     f'valid loss {k_valid_loss_:.6f}'
                 )
+
+            logger.close()
 
         self.k_train_loss_ = \
             accumulator.get('k_train_loss') / accumulator.get('k')

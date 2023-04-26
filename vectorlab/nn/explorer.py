@@ -856,7 +856,7 @@ class Explorer(SLMixin):
             If show the progress of training process.
             0 : quite mode
             1 : show basic summary
-            2 : show progress bar of inferring all data
+            2 : show progress bar of training all data
 
         Returns
         -------
@@ -1022,7 +1022,7 @@ class Explorer(SLMixin):
             If show the progress of k-fold training process.
             0 : quite mode
             1 : show basic summary
-            2 : show progress bar of inferring all data
+            2 : show progress bar of training all data
 
         Returns
         -------

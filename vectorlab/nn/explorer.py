@@ -947,7 +947,8 @@ class Explorer(SLMixin):
         if hasattr(self.loss_fn_, 'to'):
             self.loss_fn_.to(self.device_)
 
-        logger.watch(self.net_, self.loss_fn_)
+        if logger:
+            logger.watch(self.net_, self.loss_fn_)
 
         train_loader = self.train_loader_fn_(
             train_dataset,
@@ -1020,6 +1021,7 @@ class Explorer(SLMixin):
 
         if logger:
             logger.log_params(self.parameters_dict_, nested_metrics_)
+            logger.close()
 
         if save_last:
             self._save_last_model()
@@ -1029,8 +1031,6 @@ class Explorer(SLMixin):
                 f'Result: train loss {self.train_loss_:.6f}, '
                 f'valid loss {self.valid_loss_:.6f}'
             )
-
-        logger.close()
 
         return self
 
@@ -1091,7 +1091,8 @@ class Explorer(SLMixin):
             if hasattr(self.loss_fn_, 'to'):
                 self.loss_fn_.to(self.device_)
 
-            logger.watch(self.net_, self.loss_fn_)
+            if logger:
+                logger.watch(self.net_, self.loss_fn_)
 
             k_train_dataset = Subset(train_dataset, train_index)
             k_valid_dataset = Subset(train_dataset, valid_index)
@@ -1151,6 +1152,7 @@ class Explorer(SLMixin):
 
             if logger:
                 logger.log_params(self.parameters_dict_, k_nested_metrics_)
+                logger.close()
 
             accumulator.add(
                 {
@@ -1167,8 +1169,6 @@ class Explorer(SLMixin):
                     f'Fold {k}: train loss {k_train_loss_:.6f}, '
                     f'valid loss {k_valid_loss_:.6f}'
                 )
-
-            logger.close()
 
         self.k_train_loss_ = \
             accumulator.get('k_train_loss') / accumulator.get('k')

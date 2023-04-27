@@ -184,11 +184,11 @@ def earlystopping_resolver(query):
 
     Returns
     -------
-    _earlystopping._EarlyStopping
+    _earlystopping.EarlyStopping
         The resolved earlystopping class.
     """
 
-    base_class = _earlystopping._EarlyStopping  # noqa
+    base_class = _earlystopping.EarlyStopping
 
     earlystoppings = [
         es

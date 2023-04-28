@@ -30,6 +30,7 @@ torch
 
 # PyTorch releated #
 ####################
+wandb
 torchinfo
 tensorboard
 

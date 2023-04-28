@@ -4,7 +4,7 @@ from ..base import SLMixin
 from ..utils._check import check_valid_option
 
 
-class _EarlyStopping(SLMixin):
+class EarlyStopping(SLMixin):
     r"""The EarlyStopping class to stop training in advance.
 
     The EarlyStopping is a form of regularization used to avoid
@@ -118,7 +118,7 @@ class _EarlyStopping(SLMixin):
         return False
 
 
-class AscES(_EarlyStopping):
+class AscES(EarlyStopping):
     r"""The ascending type of EarlyStopping class to stop training in advance.
 
     Parameters
@@ -145,7 +145,7 @@ class AscES(_EarlyStopping):
         return
 
 
-class DescES(_EarlyStopping):
+class DescES(EarlyStopping):
     r"""The descending type of EarlyStopping class to stop training in advance.
 
     Parameters

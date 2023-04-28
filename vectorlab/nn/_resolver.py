@@ -1,8 +1,13 @@
 import torch
 import torch_geometric
+import importlib.metadata as importlib_metadata
 
-from . import _earlystopping
+from packaging.version import parse
+
+from . import _earlystopping, _logger
 from ..data import dataloader as _dataloader
+
+_torch_version = importlib_metadata.version('torch')
 
 
 def normalize_string(s):
@@ -151,7 +156,10 @@ def scheduler_resolver(query):
         The resolved scheduler class.
     """
 
-    base_class = torch.optim.lr_scheduler._LRScheduler  # noqa
+    if parse(_torch_version) >= parse('2.0.0'):
+        base_class = torch.optim.lr_scheduler.LRScheduler
+    else:
+        base_class = torch.optim.lr_scheduler._LRScheduler  # noqa
 
     schedulers = [
         scheduler
@@ -176,11 +184,11 @@ def earlystopping_resolver(query):
 
     Returns
     -------
-    _earlystopping._EarlyStopping
+    _earlystopping.EarlyStopping
         The resolved earlystopping class.
     """
 
-    base_class = _earlystopping._EarlyStopping  # noqa
+    base_class = _earlystopping.EarlyStopping
 
     earlystoppings = [
         es
@@ -190,6 +198,35 @@ def earlystopping_resolver(query):
     earlystoppings_dict = {}
 
     return resolver(query, earlystoppings, earlystoppings_dict)
+
+
+def logger_resolver(query):
+    r"""A logger resolver.
+
+    List all loggers supported by vectorlab.nn._logger and find
+    corresponding logger.
+
+    Parameters
+    ----------
+    query : str
+        Input logger query.
+
+    Returns
+    -------
+    _logger.BaseLogger
+        The resolved logger class.
+    """
+
+    base_class = _logger.BaseLogger
+
+    loggers = [
+        logger
+        for logger in vars(_logger).values()
+        if isinstance(logger, type) and issubclass(logger, base_class)
+    ]
+    loggers_dict = {}
+
+    return resolver(query, loggers, loggers_dict)
 
 
 def activation_resolver(query):

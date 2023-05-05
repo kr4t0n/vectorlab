@@ -77,6 +77,16 @@ class BaseLogger(SLMixin):
         """
         raise NotImplementedError
 
+    def unwatch(self, net):
+        r"""Un-watch the model gradients.
+
+        Parameters
+        ----------
+        net : torch.nn.Module
+            The neural network used in training.
+        """
+        raise NotImplementedError
+
     def log(self, metrics, step):
         r"""Log the training metrics.
 
@@ -147,6 +157,18 @@ class Tensorboard(BaseLogger):
             The neural network used in training.
         loss_fn : torch.nn.Module
             The loss function used in training.
+        """
+        return
+
+    def unwatch(self, net):
+        r"""Un-watch the model gradients.
+
+        Currently not supported in tensorboard.
+
+        Parameters
+        ----------
+        net : torch.nn.Module
+            The neural network used in training.
         """
         return
 
@@ -242,6 +264,19 @@ class Wandb(BaseLogger):
             log='all',
             log_freq=self.freq_
         )
+
+        return
+
+    def unwatch(self, net):
+        r"""Un-watch the model gradients.
+
+        Parameters
+        ----------
+        net : torch.nn.Module
+            The neural network used in training.
+        """
+
+        wandb.unwatch(net)
 
         return
 

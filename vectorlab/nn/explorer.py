@@ -481,7 +481,7 @@ class Explorer(SLMixin):
         return self
 
     def _pbar_disable(self, verbose):
-        """If pbar display should be disabled.
+        r"""If pbar display should be disabled.
 
         Parameters
         ----------
@@ -498,6 +498,25 @@ class Explorer(SLMixin):
             return False
         else:
             return True
+
+    def _calc_metrics(self, verbose):
+        r"""If calculate metrics after each epoch.
+
+        Parameters
+        ----------
+        verbose : int
+            Level of verbose mode.
+
+        Returns
+        -------
+        bool
+            Return if metrics should be calculated.
+        """
+
+        if (verbose >= 1) or self.earlystopping_fn_ or self.logger_fn_:
+            return True
+        else:
+            return False
 
     def reset(self):
         r"""The reset method.
@@ -949,11 +968,6 @@ class Explorer(SLMixin):
         else:
             logger = None
 
-        if logger or self.earlystopping_ or save_best or verbose > 1:
-            _calc_metrics = True
-        else:
-            _calc_metrics = False
-
         pbar = tqdm(
             range(self.num_epochs_),
             ascii=True,
@@ -962,7 +976,7 @@ class Explorer(SLMixin):
         for epoch in pbar:
             self._train(train_loader)
 
-            if _calc_metrics:
+            if self._calc_metrics(verbose) or save_best:
                 metrics_, nested_metrics_ = self._metrics(
                     train_loader, valid_loader
                 )
@@ -977,13 +991,15 @@ class Explorer(SLMixin):
                     f'Epoch: {epoch:0{self.epochs_len_}d}, {metric_repr_}'
                 )
 
-            if self.earlystopping_:
-                self.earlystopping_.record_metric(
-                    metrics_[self.earlystopping_metric_]
-                )
+            if self.accelerator_.is_main_process:
 
-            if logger and (epoch % logger.freq_ == 0):
-                logger.log(nested_metrics_, step=epoch)
+                if self.earlystopping_:
+                    self.earlystopping_.record_metric(
+                        metrics_[self.earlystopping_metric_]
+                    )
+
+                if logger and (epoch % logger.freq_ == 0):
+                    logger.log(nested_metrics_, step=epoch)
 
             if save_best:
                 if metrics_['loss'] < self.best_loss_:
@@ -991,6 +1007,7 @@ class Explorer(SLMixin):
                     self._save_best_model()
 
             if self.earlystopping_ and self.earlystopping_.is_done():
+                self.accelerator_.wait_for_everyone()
                 break
 
         _, nested_metrics_ = self._metrics(
@@ -1090,11 +1107,6 @@ class Explorer(SLMixin):
             else:
                 logger = None
 
-            if logger or self.earlystopping_ or verbose > 1:
-                _calc_metrics = True
-            else:
-                _calc_metrics = False
-
             pbar = tqdm(
                 range(self.num_epochs_),
                 ascii=True,
@@ -1103,7 +1115,7 @@ class Explorer(SLMixin):
             for epoch in pbar:
                 self._train(k_train_dataloader)
 
-                if _calc_metrics:
+                if self._calc_metrics(verbose):
                     k_metrics_, k_nested_metrics_ = self._metrics(
                         k_train_dataloader, k_valid_dataloader
                     )
@@ -1118,15 +1130,18 @@ class Explorer(SLMixin):
                         f'Epoch: {epoch:0{self.epochs_len_}d}, {metric_repr_}'
                     )
 
-                if self.earlystopping_:
-                    self.earlystopping_.record_metric(
-                        k_metrics_[self.earlystopping_metric_]
-                    )
+                if self.accelerator_.is_main_process:
 
-                if logger and (epoch % logger.freq_ == 0):
-                    logger.log(k_nested_metrics_, step=epoch)
+                    if self.earlystopping_:
+                        self.earlystopping_.record_metric(
+                            k_metrics_[self.earlystopping_metric_]
+                        )
+
+                    if logger and (epoch % logger.freq_ == 0):
+                        logger.log(k_nested_metrics_, step=epoch)
 
                 if self.earlystopping_ and self.earlystopping_.is_done():
+                    self.accelerator_.wait_for_everyone()
                     break
 
             _, k_nested_metrics_ = self._metrics(

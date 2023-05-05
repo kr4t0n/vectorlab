@@ -959,14 +959,16 @@ class Explorer(SLMixin):
 
         self.best_loss_ = np.Inf
 
-        if self.logger_fn_ is not None:
-            logger = self.logger_fn_(
-                self.logger_project_, self.logger_id_,
-                freq=self.logger_freq_
-            )
-            logger.watch(self.net_, self.loss_fn_)
-        else:
-            logger = None
+        if self.accelerator_.is_main_process:
+
+            if self.logger_fn_ is not None:
+                logger = self.logger_fn_(
+                    self.logger_project_, self.logger_id_,
+                    freq=self.logger_freq_
+                )
+                logger.watch(self.net_, self.loss_fn_)
+            else:
+                logger = None
 
         pbar = tqdm(
             range(self.num_epochs_),
@@ -1021,10 +1023,12 @@ class Explorer(SLMixin):
         else:
             self.valid_loss_ = np.Inf
 
-        if logger:
-            logger.log_params(self.parameters_dict_, nested_metrics_)
-            logger.unwatch(self.net_)
-            logger.close()
+        if self.accelerator_.is_main_process:
+
+            if logger:
+                logger.log_params(self.parameters_dict_, nested_metrics_)
+                logger.unwatch(self.net_)
+                logger.close()
 
         if save_last:
             self._save_last_model()
@@ -1099,14 +1103,16 @@ class Explorer(SLMixin):
                 k_train_dataloader, k_valid_dataloader
             )
 
-            if self.logger_fn_ is not None:
-                logger = self.logger_fn_(
-                    self.logger_project_, f'{self.logger_id_}-kfold-{k}',
-                    freq=self.logger_freq_
-                )
-                logger.watch(self.net_, self.loss_fn_)
-            else:
-                logger = None
+            if self.accelerator_.is_main_process:
+
+                if self.logger_fn_ is not None:
+                    logger = self.logger_fn_(
+                        self.logger_project_, f'{self.logger_id_}-kfold-{k}',
+                        freq=self.logger_freq_
+                    )
+                    logger.watch(self.net_, self.loss_fn_)
+                else:
+                    logger = None
 
             pbar = tqdm(
                 range(self.num_epochs_),
@@ -1149,10 +1155,12 @@ class Explorer(SLMixin):
                 k_train_dataloader, k_valid_dataloader
             )
 
-            if logger:
-                logger.log_params(self.parameters_dict_, k_nested_metrics_)
-                logger.unwatch(self.net_)
-                logger.close()
+            if self.accelerator_.is_main_process:
+
+                if logger:
+                    logger.log_params(self.parameters_dict_, k_nested_metrics_)
+                    logger.unwatch(self.net_)
+                    logger.close()
 
             accumulator.add(
                 {

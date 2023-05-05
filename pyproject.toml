@@ -37,7 +37,8 @@ dependencies = [
     "pyyaml>=6.0",
     "wandb>=0.15.0",
     "torchinfo>=1.6.3",
-    "tensorboard>=2.6.0"
+    "tensorboard>=2.6.0",
+    "accelerate>=0.18.0"
 ]
 
 [project.optional-dependencies]

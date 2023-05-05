@@ -1023,6 +1023,7 @@ class Explorer(SLMixin):
 
         if logger:
             logger.log_params(self.parameters_dict_, nested_metrics_)
+            logger.unwatch(self.net_)
             logger.close()
 
         if save_last:
@@ -1150,6 +1151,7 @@ class Explorer(SLMixin):
 
             if logger:
                 logger.log_params(self.parameters_dict_, k_nested_metrics_)
+                logger.unwatch(self.net_)
                 logger.close()
 
             accumulator.add(

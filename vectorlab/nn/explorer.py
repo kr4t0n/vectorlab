@@ -3,6 +3,7 @@ import uuid
 import numpy as np
 
 from tqdm.auto import tqdm
+from accelerate import Accelerator
 from sklearn.model_selection import KFold
 
 import torch
@@ -205,12 +206,9 @@ class Explorer(SLMixin):
                  logger_fn='tensorboard',
                  logger_project='vectorlab_explorer_project', logger_id=None,
                  logger_freq=1,
-                 device=None,
                  parameters_dict=None):
 
         super().__init__()
-
-        self._init_devices_(device)
 
         self.k_ = int(k)
         self.batch_size_ = int(batch_size)
@@ -244,11 +242,6 @@ class Explorer(SLMixin):
         self.loss_input_ = loss_input
         self._init_input_format()
 
-        if len(self.devices_) > 1:
-            self.net_ = torch.nn.DataParallel(
-                self.net_, device_ids=self.devices_
-            )
-
         self.optimizer_fn_ = optimizer_fn
         self.learning_rate_ = learning_rate
         self.weight_decay_ = weight_decay
@@ -272,53 +265,15 @@ class Explorer(SLMixin):
 
         self._init_parameters_dict_(parameters_dict)
 
+        self.accelerator_ = Accelerator()
+        self.net_, self.loss_fn_ = self.accelerator_.prepare(
+            self.net_, self.loss_fn_
+        )
+        self.optimizer_, self.scheduler_ = self.accelerator_.prepare(
+            self.optimizer_, self.scheduler_
+        )
+
         return
-
-    def _init_devices_(self, device=None):
-        r"""Automatically initialize the devices used to store the data
-        and model.
-
-        If certain device or a list of devices are given, such device(s)
-        will be used to store the data and model, otherwise, all available
-        devices will be used.
-
-        Parameters
-        ----------
-        device : str, list, optional
-            If given specified device or a list of devices, the explorer
-            will use such device(s) as desired. If no device is specified,
-            the explorer will automatically choose the device(s).
-
-        Returns
-        -------
-        self : Explorer
-            Return itself.
-        """
-
-        if device is None:
-            if torch.cuda.is_available():
-                self.devices_ = [
-                    torch.device(f'cuda:{i}')
-                    for i in range(torch.cuda.device_count())
-                ]
-                self.device_ = self.devices_[0]
-            elif (
-                hasattr(torch.backends, 'mps')
-            ) and torch.backends.mps.is_available():
-                self.devices_ = [torch.device('mps')]
-                self.device_ = self.devices_[0]
-            else:
-                self.devices_ = [torch.device('cpu')]
-                self.device_ = self.devices_[0]
-        else:
-            if isinstance(device, list):
-                self.devices_ = [torch.device(_) for _ in device]
-                self.device_ = self.devices_[0]
-            else:
-                self.devices_ = [torch.device(device)]
-                self.device_ = self.devices_[0]
-
-        return self
 
     def _init_optimizer(self):
         r"""Initialize proper optimizer
@@ -483,15 +438,15 @@ class Explorer(SLMixin):
         """
 
         net_input = tuple(
-            batch[ind[0]].to(self.device_)
+            batch[ind[0]]
             if len(ind) == 1
-            else getattr(batch[ind[0]], ind[1]).to(self.device_)
+            else getattr(batch[ind[0]], ind[1])
             for ind in self.net_input_ind_
         )
         loss_input = tuple(
-            batch[ind[0]].to(self.device_)
+            batch[ind[0]]
             if len(ind) == 1
-            else getattr(batch[ind[0]], ind[1]).to(self.device_)
+            else getattr(batch[ind[0]], ind[1])
             for ind in self.loss_input_ind_
         )
 
@@ -525,6 +480,25 @@ class Explorer(SLMixin):
 
         return self
 
+    def _pbar_disable(self, verbose):
+        """If pbar display should be disabled.
+
+        Parameters
+        ----------
+        verbose : int
+            Level of verbose mode.
+
+        Returns
+        -------
+        bool
+            Return if pbar display should be disabled.
+        """
+
+        if (verbose > 1) and self.accelerator_.is_local_main_process:
+            return False
+        else:
+            return True
+
     def reset(self):
         r"""The reset method.
 
@@ -537,10 +511,7 @@ class Explorer(SLMixin):
             Return itself.
         """
 
-        if len(self.devices_) > 1:
-            self.net_.module.reset_parameters()
-        else:
-            self.net_.reset_parameters()
+        self.net_.reset_parameters()
 
         self.optimizer_ = self.optimizer_fn_(
             self.net_.parameters(),
@@ -555,6 +526,10 @@ class Explorer(SLMixin):
             self.earlystopping_ = self.earlystopping_fn_(
                 **self.earlystopping_kwargs_
             )
+
+        self.optimizer_, self.scheduler_ = self.accelerator_.prepare(
+            self.optimizer_, self.scheduler_
+        )
 
         return self
 
@@ -591,7 +566,7 @@ class Explorer(SLMixin):
             output = output if isinstance(output, tuple) else (output, )
 
             loss = self.loss_fn_(*output, *loss_input)
-            loss.backward()
+            self.accelerator_.backward(loss)
             self.optimizer_.step()
 
         if self.scheduler_:
@@ -677,6 +652,10 @@ class Explorer(SLMixin):
                 output = self.net_(*net_input)
                 output = output if isinstance(output, tuple) else (output, )
 
+                output, loss_input = self.accelerator_.gather_for_metrics(
+                    (output, loss_input)
+                )
+
                 loss = self.loss_fn_(*output, *loss_input).item()
                 accumulator.add(
                     {
@@ -691,7 +670,7 @@ class Explorer(SLMixin):
 
         return metrics
 
-    def _loss_acc_evaluate(self, loader):
+    def _loss_acc_evaluate(self, loader):  # TODO: update this
         r"""The loss and accuracy evaluation method.
 
         We calculate the overall and accuracy as our evaluation metrics,
@@ -757,6 +736,8 @@ class Explorer(SLMixin):
             The data loader containing validation data to evaluate the trained
             neural network.
         """
+
+        self.net_.eval()
 
         return self._loss_evaluate(loader)
 
@@ -828,7 +809,9 @@ class Explorer(SLMixin):
 
         with torch.no_grad():
 
-            for batch in tqdm(loader, ascii=True, disable=(verbose <= 1)):
+            for batch in tqdm(loader,
+                              ascii=True,
+                              disable=self._pbar_disable(verbose)):
 
                 if not isinstance(batch, (tuple, list)):
                     batch = (batch, )
@@ -836,6 +819,7 @@ class Explorer(SLMixin):
                 net_input, _ = self._generate_input(batch)
 
                 output = self.net_(*net_input)
+                output = self.accelerator_.gather_for_metrics(output)
                 outputs.append(output.detach().cpu().tolist())
 
         outputs = np.concatenate(outputs)
@@ -872,7 +856,9 @@ class Explorer(SLMixin):
 
         with torch.no_grad():
 
-            for batch in tqdm(loader, ascii=True, disable=(verbose <= 1)):
+            for batch in tqdm(loader,
+                              ascii=True,
+                              disable=self._pbar_disable(verbose)):
 
                 if not isinstance(batch, (tuple, list)):
                     batch = (batch, )
@@ -880,6 +866,7 @@ class Explorer(SLMixin):
                 net_input, _ = self._generate_input(batch)
 
                 output = self.net_.forward_latent(*net_input)
+                output = self.accelerator_.gather_for_metrics(output)
                 outputs.append(output.detach().cpu().tolist())
 
         outputs = np.concatenate(outputs)
@@ -922,33 +909,11 @@ class Explorer(SLMixin):
             Return itself.
         """
 
-        if verbose:
+        if verbose and self.accelerator_.is_local_main_process:
             print(
                 f'Training with parameters: {self.__repr_parameters__()} '
-                f'on devices {self.devices_}'
+                f'on devices {self.accelerator_.device}'
             )
-
-        self.best_loss_ = np.Inf
-
-        if self.logger_fn_ is not None:
-            logger = self.logger_fn_(
-                self.logger_project_, self.logger_id_,
-                freq=self.logger_freq_
-            )
-        else:
-            logger = None
-
-        if logger or self.earlystopping_ or save_best or verbose > 1:
-            _calc_metrics = True
-        else:
-            _calc_metrics = False
-
-        self.net_.to(self.device_)
-        if hasattr(self.loss_fn_, 'to'):
-            self.loss_fn_.to(self.device_)
-
-        if logger:
-            logger.watch(self.net_, self.loss_fn_)
 
         train_loader = self.train_loader_fn_(
             train_dataset,
@@ -969,10 +934,30 @@ class Explorer(SLMixin):
         else:
             valid_loader = None
 
+        train_loader, valid_loader = self.accelerator_.prepare(
+            train_loader, valid_loader
+        )
+
+        self.best_loss_ = np.Inf
+
+        if self.logger_fn_ is not None:
+            logger = self.logger_fn_(
+                self.logger_project_, self.logger_id_,
+                freq=self.logger_freq_
+            )
+            logger.watch(self.net_, self.loss_fn_)
+        else:
+            logger = None
+
+        if logger or self.earlystopping_ or save_best or verbose > 1:
+            _calc_metrics = True
+        else:
+            _calc_metrics = False
+
         pbar = tqdm(
             range(self.num_epochs_),
             ascii=True,
-            disable=(verbose <= 1)
+            disable=self._pbar_disable(verbose)
         )
         for epoch in pbar:
             self._train(train_loader)
@@ -1058,11 +1043,11 @@ class Explorer(SLMixin):
             Return itself.
         """
 
-        if verbose:
+        if verbose and self.accelerator_.is_local_main_process:
             print(
                 f'Training with parameters: k={self.k_}, '
                 f'{self.__repr_parameters__()} '
-                f'on devices {self.devices_}'
+                f'on devices {self.accelerator_.device}'
             )
 
         accumulator = Accumulator(3, ['k_train_loss', 'k_valid_loss', 'k'])
@@ -1070,29 +1055,9 @@ class Explorer(SLMixin):
         kf = KFold(n_splits=self.k_)
         for k, index in enumerate(kf.split(train_dataset)):
 
-            (train_index, valid_index) = index
-
-            if self.logger_fn_ is not None:
-                logger = self.logger_fn_(
-                    self.logger_project_, f'{self.logger_id_}-kfold-{k}',
-                    freq=self.logger_freq_
-                )
-            else:
-                logger = None
-
-            if logger or self.earlystopping_ or verbose > 1:
-                _calc_metrics = True
-            else:
-                _calc_metrics = False
-
             self.reset()
 
-            self.net_.to(self.device_)
-            if hasattr(self.loss_fn_, 'to'):
-                self.loss_fn_.to(self.device_)
-
-            if logger:
-                logger.watch(self.net_, self.loss_fn_)
+            (train_index, valid_index) = index
 
             k_train_dataset = Subset(train_dataset, train_index)
             k_valid_dataset = Subset(train_dataset, valid_index)
@@ -1112,10 +1077,28 @@ class Explorer(SLMixin):
                 **self.valid_loader_kwargs_
             )
 
+            k_train_dataloader, k_valid_dataloader = self.accelerator_.prepare(
+                k_train_dataloader, k_valid_dataloader
+            )
+
+            if self.logger_fn_ is not None:
+                logger = self.logger_fn_(
+                    self.logger_project_, f'{self.logger_id_}-kfold-{k}',
+                    freq=self.logger_freq_
+                )
+                logger.watch(self.net_, self.loss_fn_)
+            else:
+                logger = None
+
+            if logger or self.earlystopping_ or verbose > 1:
+                _calc_metrics = True
+            else:
+                _calc_metrics = False
+
             pbar = tqdm(
                 range(self.num_epochs_),
                 ascii=True,
-                disable=(verbose <= 1)
+                disable=self._pbar_disable(verbose)
             )
             for epoch in pbar:
                 self._train(k_train_dataloader)
@@ -1207,13 +1190,11 @@ class Explorer(SLMixin):
             Return the outputs.
         """
 
-        if verbose:
+        if verbose and self.accelerator_.is_local_main_process:
             print(
                 f'Inferring with parameters: {self.__repr_parameters__()} '
-                f'on devices {self.devices_}'
+                f'on devices {self.accelerator_.device}'
             )
-
-        self.net_.to(self.device_)
 
         test_dataloader = self.test_loader_fn_(
             test_dataset,
@@ -1222,6 +1203,7 @@ class Explorer(SLMixin):
             shuffle=False,
             **self.test_loader_kwargs_
         )
+        test_dataloader = self.accelerator_.prepare(test_dataloader)
 
         self.outputs_ = self._inference(test_dataloader, verbose=verbose)
 
@@ -1251,13 +1233,11 @@ class Explorer(SLMixin):
             Return the outputs.
         """
 
-        if verbose:
+        if verbose and self.accelerator_.is_local_main_process:
             print(
                 'Getting latent representation with '
                 f'parameters: {self.__repr_parameters__()}'
             )
-
-        self.net_.to(self.device_)
 
         test_dataloader = self.test_loader_fn_(
             test_dataset,
@@ -1266,6 +1246,7 @@ class Explorer(SLMixin):
             shuffle=False,
             **self.test_loader_kwargs_
         )
+        test_dataloader = self.accelerator_.prepare(test_dataloader)
 
         self.outputs_ = self._latent(test_dataloader, verbose=verbose)
 
@@ -1315,16 +1296,11 @@ class Explorer(SLMixin):
             Return itself.
         """
 
-        if isinstance(self.net_, torch.nn.DataParallel):
-            torch.save(
-                self.net_.module.state_dict(),
-                model_path
-            )
-        else:
-            torch.save(
-                self.net_.state_dict(),
-                model_path
-            )
+        self.accelerator_.wait_for_everyone()
+
+        if self.accelerator_.is_main_process:
+            unwrapped_net = self.accelerator_.unwrap_model(self.net_)
+            self.accelerator_.save(unwrapped_net.state_dict(), model_path)
 
         return self
 
@@ -1342,14 +1318,9 @@ class Explorer(SLMixin):
             Return itself.
         """
 
-        if isinstance(self.net_, torch.nn.DataParallel):
-            self.net_.module.load_state_dict(
-                torch.load(model_path, map_location=self.device_)
-            )
-        else:
-            self.net_.load_state_dict(
-                torch.load(model_path, map_location=self.device_)
-            )
+        if self.accelerator_.is_main_process:
+            unwrapped_net = self.accelerator_.unwrap_model(self.net_)
+            unwrapped_net.load_state_dict(torch.load(model_path))
 
         return self
 

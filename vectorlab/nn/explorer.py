@@ -1373,8 +1373,6 @@ class Explorer(SLMixin):
             Return itself.
         """
 
-        self.net_.to(self.device_)
-
         self.net_.eval()
 
         loader = self.train_loader_fn_(
@@ -1384,6 +1382,7 @@ class Explorer(SLMixin):
             shuffle=False,
             **self.train_loader_kwargs_
         )
+        loader = self.accelerator_.prepare(loader)
 
         sample_batch = next(iter(loader))
 
@@ -1393,7 +1392,9 @@ class Explorer(SLMixin):
         sample_net_input, _ = self._generate_input(sample_batch)
 
         start_ts = time.time()
-        for batch in tqdm(loader, ascii=True, disable=(verbose <= 1)):
+        for batch in tqdm(loader,
+                          ascii=True,
+                          disable=self._pbar_disable(verbose)):
 
             if not isinstance(batch, (tuple, list)):
                 batch = (batch, )
@@ -1405,23 +1406,26 @@ class Explorer(SLMixin):
 
         ts = end_ts - start_ts
 
-        self.summary_ = summary(
-            self.net_, input_data=sample_net_input,
-            verbose=0
-        )
+        if self.accelerator_.is_local_main_process:
 
-        divider = "=" * self.summary_.formatting.get_total_width()
+            self.summary_ = summary(
+                self.net_,
+                input_data=sample_net_input,
+                verbose=0
+            )
 
-        if verbose:
-            print(divider)
-            print(
-                f'Inferring {len(dataset)} data in {ts:.6f}s '
-                f'[{len(dataset) / ts:.6f}it/s]'
-            )
-            print(
-                f'On devices: {self.devices_}'
-            )
-            print(self.summary_)
+            divider = "=" * self.summary_.formatting.get_total_width()
+
+            if verbose:
+                print(divider)
+                print(
+                    f'Inferring {len(dataset)} data in {ts:.6f}s '
+                    f'[{len(dataset) / ts:.6f}it/s]'
+                )
+                print(
+                    f'On devices: {self.accelerator_.device}'
+                )
+                print(self.summary_)
 
         return self
 

@@ -1,5 +1,6 @@
 import time
 import uuid
+import evaluate
 import numpy as np
 
 from tqdm.auto import tqdm
@@ -45,6 +46,8 @@ class Explorer(SLMixin):
         The number of subprocesses to load data.
     num_epochs : int
         The number of epoch to train the neural network.
+    metrics : list
+        The metrics used to evaluate.
     train_loader_fn : str, callable
         The data loader function to be used to load data from dataset
         in training process, currently supports nn and gnn.
@@ -113,6 +116,8 @@ class Explorer(SLMixin):
         The number of subprocesses to load data.
     num_epochs_ : int
         The number of epoch to train the neural network.
+    metrics_ : list
+        The metrics used to evaluate.
     epochs_len_ : int
         The length of epoch number.
     loader_fn_ : torch.utils.data.DataLoader, torch_geometric.loader.DataLoader
@@ -194,6 +199,7 @@ class Explorer(SLMixin):
                  batch_input, net_input, loss_input,
                  k=5,
                  batch_size=32, num_workers=0, num_epochs=100,
+                 extra_metrics=None,
                  train_loader_fn='dataloader', train_loader_kwargs=None,
                  valid_loader_fn=None, valid_loader_kwargs=None,
                  test_loader_fn=None, test_loader_kwargs=None,
@@ -215,6 +221,11 @@ class Explorer(SLMixin):
         self.num_workers_ = int(num_workers)
         self.num_epochs_ = int(num_epochs)
         self.epochs_len_ = int(np.floor(np.log10(self.num_epochs_) + 1))
+
+        if extra_metrics is None:
+            self.extra_metrics_ = None
+        else:
+            self.extra_metrics_ = evaluate.combine(extra_metrics)
 
         self.train_loader_fn_ = dataloader_resolver(train_loader_fn)
         self.train_loader_kwargs_ = \
@@ -637,23 +648,57 @@ class Explorer(SLMixin):
 
         return n_samples
 
-    def _loss_evaluate(self, loader):
-        r"""The loss metrics evaluation method.
+    def _extra_metrics_transform(self, output, loss_input):
+        r"""Some extra transformations performed to calculate metrics.
+
+        Output is in the tuple format of the neural network output, while
+        loss_input is in the tuple format to feed in to loss function.
+
+        In most cases, the first element of output should be the predictions,
+        and the first element of loss_input should be the references. However,
+        if you have more flexible format, you can overload this function as 
+        you desired.
+
+        Parameters
+        ----------
+        output : tuple
+            The output of the neural network.
+        loss_input : tuple
+            The input of the loss function.
+
+        Returns
+        -------
+        predictions : tensor
+            The predictions of the neural network.
+        references : tensor
+            The references of the loss function.
+        """
+
+        predictions = output[0].detach()
+        references = loss_input[0].detach()
+
+        return predictions, references
+
+    def _evaluate(self, loader):
+        r"""This evaluation method.
 
         We calculate the overall loss as our evaluation metrics, while the
         way of calculating the loss is same as the process in the train part.
+        Besides, some extra metrics are also calculated during this process.
 
         Parameters
         ----------
         loader : torch.utils.data.DataLoader
-            The data loader containing data to evaluate the trained neural
-            network.
+            The data loader containing validation data to evaluate the trained
+            neural network.
 
         Returns
         -------
-        metric : dict
+        metrics : dict
             The dictionary contained the evaluation metrics.
         """
+
+        self.net_.eval()
 
         accumulator = Accumulator(2, ['loss', 'n_samples'])
 
@@ -674,91 +719,32 @@ class Explorer(SLMixin):
                 output, loss_input = self.accelerator_.gather_for_metrics(
                     (output, loss_input)
                 )
-
                 loss = self.loss_fn_(*output, *loss_input).item()
+
                 accumulator.add(
                     {
                         'loss': loss * n_samples,
                         'n_samples': n_samples
                     }
                 )
+
+                if self.extra_metrics_ is not None:
+                    predictions, references = self._extra_metrics_transform(
+                        output, loss_input
+                    )
+                    self.extra_metrics_.add_batch(
+                        predictions=predictions,
+                        references=references
+                    )
 
         metrics = {
             'loss': accumulator.get('loss') / accumulator.get('n_samples')
         }
 
-        return metrics
-
-    def _loss_acc_evaluate(self, loader):  # TODO: update this
-        r"""The loss and accuracy evaluation method.
-
-        We calculate the overall and accuracy as our evaluation metrics,
-        while the way of calculating the loss is same as the process in
-        the train part while accuracy is often used when served as a
-        classification problem.
-
-        Parameters
-        ----------
-        loader : torch.utils.data.DataLoader
-            The data loader containing data to evaluate the trained neural
-            network.
-
-        Returns
-        -------
-        metric : dict
-            The dictionary contained the evaluation metrics.
-        """
-
-        accumulator = Accumulator(3, ['loss', 'acc', 'n_samples'])
-
-        with torch.no_grad():
-
-            for batch in loader:
-
-                if not isinstance(batch, (tuple, list)):
-                    batch = (batch, )
-
-                n_samples = self._infer_n_samples(batch[0], loader)
-
-                net_input, loss_input = self._generate_input(batch)
-
-                y_hat = self.net_(*net_input)
-
-                loss = self.loss_fn_(y_hat, *loss_input).item()
-                acc = (y_hat.argmax(axis=1) == loss_input[0]).sum().item()
-
-                accumulator.add(
-                    {
-                        'loss': loss * n_samples,
-                        'acc': acc,
-                        'n_samples': n_samples
-                    }
-                )
-
-        metrics = {
-            'loss': accumulator.get('loss') / accumulator.get('n_samples'),
-            'acc': accumulator.get('acc') / accumulator.get('n_samples')
-        }
+        if self.extra_metrics_ is not None:
+            metrics.update(self.extra_metrics_.compute())
 
         return metrics
-
-    def _evaluate(self, loader):
-        r"""This it the abstract performance evaluation method.
-
-        This is the abstract evaluate method that should be implemented in
-        children class, that it will evaluate the performance of trained
-        neural network.
-
-        Parameters
-        ----------
-        loader : torch.utils.data.DataLoader
-            The data loader containing validation data to evaluate the trained
-            neural network.
-        """
-
-        self.net_.eval()
-
-        return self._loss_evaluate(loader)
 
     def _metrics(self, train_loader, valid_loader=None):
         """Return the evaluated metrics from train and valid loader.

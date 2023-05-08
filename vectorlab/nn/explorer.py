@@ -656,7 +656,7 @@ class Explorer(SLMixin):
 
         In most cases, the first element of output should be the predictions,
         and the first element of loss_input should be the references. However,
-        if you have more flexible format, you can overload this function as 
+        if you have more flexible format, you can overload this function as
         you desired.
 
         Parameters

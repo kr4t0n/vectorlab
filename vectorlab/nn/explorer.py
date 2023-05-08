@@ -1335,7 +1335,7 @@ class Explorer(SLMixin):
 
         return self
 
-    def get_summary(self, dataset, verbose=1):
+    def get_summary(self, dataset=None, verbose=1):
         r"""Get a summary of neural network to be investigated.
 
         This function will retrieve the inferring speed, as items per
@@ -1359,38 +1359,50 @@ class Explorer(SLMixin):
             Return itself.
         """
 
+        if dataset is None:
+            if self.accelerator_.is_local_main_process:
+                print(
+                    'Dataset is not provided, you can only get basic '
+                    'structure of neural network. For more detailed '
+                    'information, you should provide a sample dataset.'
+                )
+
         self.net_.eval()
 
-        loader = self.train_loader_fn_(
-            dataset,
-            batch_size=self.batch_size_,
-            num_workers=self.num_workers_,
-            shuffle=False,
-            **self.train_loader_kwargs_
-        )
-        loader = self.accelerator_.prepare(loader)
+        if dataset is None:
+            loader = None
+            sample_net_input = None
+        else:
+            loader = self.train_loader_fn_(
+                dataset,
+                batch_size=self.batch_size_,
+                num_workers=self.num_workers_,
+                shuffle=False,
+                **self.train_loader_kwargs_
+            )
+            loader = self.accelerator_.prepare(loader)
 
-        sample_batch = next(iter(loader))
+            sample_batch = next(iter(loader))
 
-        if not isinstance(sample_batch, (tuple, list)):
-            sample_batch = (sample_batch, )
+            if not isinstance(sample_batch, (tuple, list)):
+                sample_batch = (sample_batch, )
 
-        sample_net_input, _ = self._generate_input(sample_batch)
+            sample_net_input, _ = self._generate_input(sample_batch)
 
-        start_ts = time.time()
-        for batch in tqdm(loader,
-                          ascii=True,
-                          disable=self._pbar_disable(verbose)):
+            start_ts = time.time()
+            for batch in tqdm(loader,
+                              ascii=True,
+                              disable=self._pbar_disable(verbose)):
 
-            if not isinstance(batch, (tuple, list)):
-                batch = (batch, )
+                if not isinstance(batch, (tuple, list)):
+                    batch = (batch, )
 
-            net_input, _ = self._generate_input(batch)
+                net_input, _ = self._generate_input(batch)
 
-            self.net_(*net_input)
-        end_ts = time.time()
+                self.net_(*net_input)
+            end_ts = time.time()
 
-        ts = end_ts - start_ts
+            ts = end_ts - start_ts
 
         if self.accelerator_.is_local_main_process:
 
@@ -1403,15 +1415,16 @@ class Explorer(SLMixin):
             divider = "=" * self.summary_.formatting.get_total_width()
 
             if verbose:
-                print(divider)
-                print(
-                    f'Inferring {len(dataset)} data in {ts:.6f}s '
-                    f'[{len(dataset) / ts:.6f}it/s]'
-                )
-                print(
-                    f'On devices: {self.accelerator_.device}'
-                )
-                print(self.summary_)
+                if dataset is None:
+                    print(self.summary_)
+                else:
+                    print(divider)
+                    print(
+                        f'Inferring {len(dataset)} data in {ts:.6f}s '
+                        f'[{len(dataset) / ts:.6f}it/s] \n'
+                        f'On devices: {self.accelerator_.device}'
+                    )
+                    print(self.summary_)
 
         return self
 

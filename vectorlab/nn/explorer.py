@@ -1,8 +1,10 @@
 import time
 import uuid
+import evaluate
 import numpy as np
 
 from tqdm.auto import tqdm
+from accelerate import Accelerator
 from sklearn.model_selection import KFold
 
 import torch
@@ -44,6 +46,8 @@ class Explorer(SLMixin):
         The number of subprocesses to load data.
     num_epochs : int
         The number of epoch to train the neural network.
+    metrics : list
+        The metrics used to evaluate.
     train_loader_fn : str, callable
         The data loader function to be used to load data from dataset
         in training process, currently supports nn and gnn.
@@ -112,6 +116,8 @@ class Explorer(SLMixin):
         The number of subprocesses to load data.
     num_epochs_ : int
         The number of epoch to train the neural network.
+    metrics_ : list
+        The metrics used to evaluate.
     epochs_len_ : int
         The length of epoch number.
     loader_fn_ : torch.utils.data.DataLoader, torch_geometric.loader.DataLoader
@@ -193,6 +199,7 @@ class Explorer(SLMixin):
                  batch_input, net_input, loss_input,
                  k=5,
                  batch_size=32, num_workers=0, num_epochs=100,
+                 extra_metrics=None,
                  train_loader_fn='dataloader', train_loader_kwargs=None,
                  valid_loader_fn=None, valid_loader_kwargs=None,
                  test_loader_fn=None, test_loader_kwargs=None,
@@ -205,18 +212,20 @@ class Explorer(SLMixin):
                  logger_fn='tensorboard',
                  logger_project='vectorlab_explorer_project', logger_id=None,
                  logger_freq=1,
-                 device=None,
                  parameters_dict=None):
 
         super().__init__()
-
-        self._init_devices_(device)
 
         self.k_ = int(k)
         self.batch_size_ = int(batch_size)
         self.num_workers_ = int(num_workers)
         self.num_epochs_ = int(num_epochs)
         self.epochs_len_ = int(np.floor(np.log10(self.num_epochs_) + 1))
+
+        if extra_metrics is None:
+            self.extra_metrics_ = None
+        else:
+            self.extra_metrics_ = evaluate.combine(extra_metrics)
 
         self.train_loader_fn_ = dataloader_resolver(train_loader_fn)
         self.train_loader_kwargs_ = \
@@ -244,11 +253,6 @@ class Explorer(SLMixin):
         self.loss_input_ = loss_input
         self._init_input_format()
 
-        if len(self.devices_) > 1:
-            self.net_ = torch.nn.DataParallel(
-                self.net_, device_ids=self.devices_
-            )
-
         self.optimizer_fn_ = optimizer_fn
         self.learning_rate_ = learning_rate
         self.weight_decay_ = weight_decay
@@ -272,53 +276,15 @@ class Explorer(SLMixin):
 
         self._init_parameters_dict_(parameters_dict)
 
+        self.accelerator_ = Accelerator()
+        self.net_, self.loss_fn_ = self.accelerator_.prepare(
+            self.net_, self.loss_fn_
+        )
+        self.optimizer_, self.scheduler_ = self.accelerator_.prepare(
+            self.optimizer_, self.scheduler_
+        )
+
         return
-
-    def _init_devices_(self, device=None):
-        r"""Automatically initialize the devices used to store the data
-        and model.
-
-        If certain device or a list of devices are given, such device(s)
-        will be used to store the data and model, otherwise, all available
-        devices will be used.
-
-        Parameters
-        ----------
-        device : str, list, optional
-            If given specified device or a list of devices, the explorer
-            will use such device(s) as desired. If no device is specified,
-            the explorer will automatically choose the device(s).
-
-        Returns
-        -------
-        self : Explorer
-            Return itself.
-        """
-
-        if device is None:
-            if torch.cuda.is_available():
-                self.devices_ = [
-                    torch.device(f'cuda:{i}')
-                    for i in range(torch.cuda.device_count())
-                ]
-                self.device_ = self.devices_[0]
-            elif (
-                hasattr(torch.backends, 'mps')
-            ) and torch.backends.mps.is_available():
-                self.devices_ = [torch.device('mps')]
-                self.device_ = self.devices_[0]
-            else:
-                self.devices_ = [torch.device('cpu')]
-                self.device_ = self.devices_[0]
-        else:
-            if isinstance(device, list):
-                self.devices_ = [torch.device(_) for _ in device]
-                self.device_ = self.devices_[0]
-            else:
-                self.devices_ = [torch.device(device)]
-                self.device_ = self.devices_[0]
-
-        return self
 
     def _init_optimizer(self):
         r"""Initialize proper optimizer
@@ -483,15 +449,15 @@ class Explorer(SLMixin):
         """
 
         net_input = tuple(
-            batch[ind[0]].to(self.device_)
+            batch[ind[0]]
             if len(ind) == 1
-            else getattr(batch[ind[0]], ind[1]).to(self.device_)
+            else getattr(batch[ind[0]], ind[1])
             for ind in self.net_input_ind_
         )
         loss_input = tuple(
-            batch[ind[0]].to(self.device_)
+            batch[ind[0]]
             if len(ind) == 1
-            else getattr(batch[ind[0]], ind[1]).to(self.device_)
+            else getattr(batch[ind[0]], ind[1])
             for ind in self.loss_input_ind_
         )
 
@@ -525,6 +491,44 @@ class Explorer(SLMixin):
 
         return self
 
+    def _pbar_disable(self, verbose):
+        r"""If pbar display should be disabled.
+
+        Parameters
+        ----------
+        verbose : int
+            Level of verbose mode.
+
+        Returns
+        -------
+        bool
+            Return if pbar display should be disabled.
+        """
+
+        if (verbose > 1) and self.accelerator_.is_local_main_process:
+            return False
+        else:
+            return True
+
+    def _calc_metrics(self, verbose):
+        r"""If calculate metrics after each epoch.
+
+        Parameters
+        ----------
+        verbose : int
+            Level of verbose mode.
+
+        Returns
+        -------
+        bool
+            Return if metrics should be calculated.
+        """
+
+        if (verbose >= 1) or self.earlystopping_fn_ or self.logger_fn_:
+            return True
+        else:
+            return False
+
     def reset(self):
         r"""The reset method.
 
@@ -537,10 +541,7 @@ class Explorer(SLMixin):
             Return itself.
         """
 
-        if len(self.devices_) > 1:
-            self.net_.module.reset_parameters()
-        else:
-            self.net_.reset_parameters()
+        self.net_.reset_parameters()
 
         self.optimizer_ = self.optimizer_fn_(
             self.net_.parameters(),
@@ -555,6 +556,10 @@ class Explorer(SLMixin):
             self.earlystopping_ = self.earlystopping_fn_(
                 **self.earlystopping_kwargs_
             )
+
+        self.optimizer_, self.scheduler_ = self.accelerator_.prepare(
+            self.optimizer_, self.scheduler_
+        )
 
         return self
 
@@ -591,7 +596,7 @@ class Explorer(SLMixin):
             output = output if isinstance(output, tuple) else (output, )
 
             loss = self.loss_fn_(*output, *loss_input)
-            loss.backward()
+            self.accelerator_.backward(loss)
             self.optimizer_.step()
 
         if self.scheduler_:
@@ -643,23 +648,57 @@ class Explorer(SLMixin):
 
         return n_samples
 
-    def _loss_evaluate(self, loader):
-        r"""The loss metrics evaluation method.
+    def _extra_metrics_transform(self, output, loss_input):
+        r"""Some extra transformations performed to calculate metrics.
+
+        Output is in the tuple format of the neural network output, while
+        loss_input is in the tuple format to feed in to loss function.
+
+        In most cases, the first element of output should be the predictions,
+        and the first element of loss_input should be the references. However,
+        if you have more flexible format, you can overload this function as
+        you desired.
+
+        Parameters
+        ----------
+        output : tuple
+            The output of the neural network.
+        loss_input : tuple
+            The input of the loss function.
+
+        Returns
+        -------
+        predictions : tensor
+            The predictions of the neural network.
+        references : tensor
+            The references of the loss function.
+        """
+
+        predictions = output[0].detach()
+        references = loss_input[0].detach()
+
+        return predictions, references
+
+    def _evaluate(self, loader):
+        r"""This evaluation method.
 
         We calculate the overall loss as our evaluation metrics, while the
         way of calculating the loss is same as the process in the train part.
+        Besides, some extra metrics are also calculated during this process.
 
         Parameters
         ----------
         loader : torch.utils.data.DataLoader
-            The data loader containing data to evaluate the trained neural
-            network.
+            The data loader containing validation data to evaluate the trained
+            neural network.
 
         Returns
         -------
-        metric : dict
+        metrics : dict
             The dictionary contained the evaluation metrics.
         """
+
+        self.net_.eval()
 
         accumulator = Accumulator(2, ['loss', 'n_samples'])
 
@@ -677,88 +716,35 @@ class Explorer(SLMixin):
                 output = self.net_(*net_input)
                 output = output if isinstance(output, tuple) else (output, )
 
+                output, loss_input = self.accelerator_.gather_for_metrics(
+                    (output, loss_input)
+                )
                 loss = self.loss_fn_(*output, *loss_input).item()
+
                 accumulator.add(
                     {
                         'loss': loss * n_samples,
                         'n_samples': n_samples
                     }
                 )
+
+                if self.extra_metrics_ is not None:
+                    predictions, references = self._extra_metrics_transform(
+                        output, loss_input
+                    )
+                    self.extra_metrics_.add_batch(
+                        predictions=predictions,
+                        references=references
+                    )
 
         metrics = {
             'loss': accumulator.get('loss') / accumulator.get('n_samples')
         }
 
-        return metrics
-
-    def _loss_acc_evaluate(self, loader):
-        r"""The loss and accuracy evaluation method.
-
-        We calculate the overall and accuracy as our evaluation metrics,
-        while the way of calculating the loss is same as the process in
-        the train part while accuracy is often used when served as a
-        classification problem.
-
-        Parameters
-        ----------
-        loader : torch.utils.data.DataLoader
-            The data loader containing data to evaluate the trained neural
-            network.
-
-        Returns
-        -------
-        metric : dict
-            The dictionary contained the evaluation metrics.
-        """
-
-        accumulator = Accumulator(3, ['loss', 'acc', 'n_samples'])
-
-        with torch.no_grad():
-
-            for batch in loader:
-
-                if not isinstance(batch, (tuple, list)):
-                    batch = (batch, )
-
-                n_samples = self._infer_n_samples(batch[0], loader)
-
-                net_input, loss_input = self._generate_input(batch)
-
-                y_hat = self.net_(*net_input)
-
-                loss = self.loss_fn_(y_hat, *loss_input).item()
-                acc = (y_hat.argmax(axis=1) == loss_input[0]).sum().item()
-
-                accumulator.add(
-                    {
-                        'loss': loss * n_samples,
-                        'acc': acc,
-                        'n_samples': n_samples
-                    }
-                )
-
-        metrics = {
-            'loss': accumulator.get('loss') / accumulator.get('n_samples'),
-            'acc': accumulator.get('acc') / accumulator.get('n_samples')
-        }
+        if self.extra_metrics_ is not None:
+            metrics.update(self.extra_metrics_.compute())
 
         return metrics
-
-    def _evaluate(self, loader):
-        r"""This it the abstract performance evaluation method.
-
-        This is the abstract evaluate method that should be implemented in
-        children class, that it will evaluate the performance of trained
-        neural network.
-
-        Parameters
-        ----------
-        loader : torch.utils.data.DataLoader
-            The data loader containing validation data to evaluate the trained
-            neural network.
-        """
-
-        return self._loss_evaluate(loader)
 
     def _metrics(self, train_loader, valid_loader=None):
         """Return the evaluated metrics from train and valid loader.
@@ -828,7 +814,9 @@ class Explorer(SLMixin):
 
         with torch.no_grad():
 
-            for batch in tqdm(loader, ascii=True, disable=(verbose <= 1)):
+            for batch in tqdm(loader,
+                              ascii=True,
+                              disable=self._pbar_disable(verbose)):
 
                 if not isinstance(batch, (tuple, list)):
                     batch = (batch, )
@@ -836,6 +824,7 @@ class Explorer(SLMixin):
                 net_input, _ = self._generate_input(batch)
 
                 output = self.net_(*net_input)
+                output = self.accelerator_.gather_for_metrics(output)
                 outputs.append(output.detach().cpu().tolist())
 
         outputs = np.concatenate(outputs)
@@ -872,7 +861,9 @@ class Explorer(SLMixin):
 
         with torch.no_grad():
 
-            for batch in tqdm(loader, ascii=True, disable=(verbose <= 1)):
+            for batch in tqdm(loader,
+                              ascii=True,
+                              disable=self._pbar_disable(verbose)):
 
                 if not isinstance(batch, (tuple, list)):
                     batch = (batch, )
@@ -880,6 +871,7 @@ class Explorer(SLMixin):
                 net_input, _ = self._generate_input(batch)
 
                 output = self.net_.forward_latent(*net_input)
+                output = self.accelerator_.gather_for_metrics(output)
                 outputs.append(output.detach().cpu().tolist())
 
         outputs = np.concatenate(outputs)
@@ -922,33 +914,11 @@ class Explorer(SLMixin):
             Return itself.
         """
 
-        if verbose:
+        if verbose and self.accelerator_.is_local_main_process:
             print(
                 f'Training with parameters: {self.__repr_parameters__()} '
-                f'on devices {self.devices_}'
+                f'on devices {self.accelerator_.device}'
             )
-
-        self.best_loss_ = np.Inf
-
-        if self.logger_fn_ is not None:
-            logger = self.logger_fn_(
-                self.logger_project_, self.logger_id_,
-                freq=self.logger_freq_
-            )
-        else:
-            logger = None
-
-        if logger or self.earlystopping_ or save_best or verbose > 1:
-            _calc_metrics = True
-        else:
-            _calc_metrics = False
-
-        self.net_.to(self.device_)
-        if hasattr(self.loss_fn_, 'to'):
-            self.loss_fn_.to(self.device_)
-
-        if logger:
-            logger.watch(self.net_, self.loss_fn_)
 
         train_loader = self.train_loader_fn_(
             train_dataset,
@@ -969,15 +939,32 @@ class Explorer(SLMixin):
         else:
             valid_loader = None
 
+        train_loader, valid_loader = self.accelerator_.prepare(
+            train_loader, valid_loader
+        )
+
+        self.best_loss_ = np.Inf
+
+        if self.accelerator_.is_main_process:
+
+            if self.logger_fn_ is not None:
+                logger = self.logger_fn_(
+                    self.logger_project_, self.logger_id_,
+                    freq=self.logger_freq_
+                )
+                logger.watch(self.net_, self.loss_fn_)
+            else:
+                logger = None
+
         pbar = tqdm(
             range(self.num_epochs_),
             ascii=True,
-            disable=(verbose <= 1)
+            disable=self._pbar_disable(verbose)
         )
         for epoch in pbar:
             self._train(train_loader)
 
-            if _calc_metrics:
+            if self._calc_metrics(verbose) or save_best:
                 metrics_, nested_metrics_ = self._metrics(
                     train_loader, valid_loader
                 )
@@ -992,13 +979,15 @@ class Explorer(SLMixin):
                     f'Epoch: {epoch:0{self.epochs_len_}d}, {metric_repr_}'
                 )
 
-            if self.earlystopping_:
-                self.earlystopping_.record_metric(
-                    metrics_[self.earlystopping_metric_]
-                )
+            if self.accelerator_.is_main_process:
 
-            if logger and (epoch % logger.freq_ == 0):
-                logger.log(nested_metrics_, step=epoch)
+                if self.earlystopping_:
+                    self.earlystopping_.record_metric(
+                        metrics_[self.earlystopping_metric_]
+                    )
+
+                if logger and (epoch % logger.freq_ == 0):
+                    logger.log(nested_metrics_, step=epoch)
 
             if save_best:
                 if metrics_['loss'] < self.best_loss_:
@@ -1006,6 +995,7 @@ class Explorer(SLMixin):
                     self._save_best_model()
 
             if self.earlystopping_ and self.earlystopping_.is_done():
+                self.accelerator_.wait_for_everyone()
                 break
 
         _, nested_metrics_ = self._metrics(
@@ -1019,9 +1009,12 @@ class Explorer(SLMixin):
         else:
             self.valid_loss_ = np.Inf
 
-        if logger:
-            logger.log_params(self.parameters_dict_, nested_metrics_)
-            logger.close()
+        if self.accelerator_.is_main_process:
+
+            if logger:
+                logger.log_params(self.parameters_dict_, nested_metrics_)
+                logger.unwatch(self.net_)
+                logger.close()
 
         if save_last:
             self._save_last_model()
@@ -1058,11 +1051,11 @@ class Explorer(SLMixin):
             Return itself.
         """
 
-        if verbose:
+        if verbose and self.accelerator_.is_local_main_process:
             print(
                 f'Training with parameters: k={self.k_}, '
                 f'{self.__repr_parameters__()} '
-                f'on devices {self.devices_}'
+                f'on devices {self.accelerator_.device}'
             )
 
         accumulator = Accumulator(3, ['k_train_loss', 'k_valid_loss', 'k'])
@@ -1070,29 +1063,9 @@ class Explorer(SLMixin):
         kf = KFold(n_splits=self.k_)
         for k, index in enumerate(kf.split(train_dataset)):
 
-            (train_index, valid_index) = index
-
-            if self.logger_fn_ is not None:
-                logger = self.logger_fn_(
-                    self.logger_project_, f'{self.logger_id_}-kfold-{k}',
-                    freq=self.logger_freq_
-                )
-            else:
-                logger = None
-
-            if logger or self.earlystopping_ or verbose > 1:
-                _calc_metrics = True
-            else:
-                _calc_metrics = False
-
             self.reset()
 
-            self.net_.to(self.device_)
-            if hasattr(self.loss_fn_, 'to'):
-                self.loss_fn_.to(self.device_)
-
-            if logger:
-                logger.watch(self.net_, self.loss_fn_)
+            (train_index, valid_index) = index
 
             k_train_dataset = Subset(train_dataset, train_index)
             k_valid_dataset = Subset(train_dataset, valid_index)
@@ -1112,15 +1085,30 @@ class Explorer(SLMixin):
                 **self.valid_loader_kwargs_
             )
 
+            k_train_dataloader, k_valid_dataloader = self.accelerator_.prepare(
+                k_train_dataloader, k_valid_dataloader
+            )
+
+            if self.accelerator_.is_main_process:
+
+                if self.logger_fn_ is not None:
+                    logger = self.logger_fn_(
+                        self.logger_project_, f'{self.logger_id_}-kfold-{k}',
+                        freq=self.logger_freq_
+                    )
+                    logger.watch(self.net_, self.loss_fn_)
+                else:
+                    logger = None
+
             pbar = tqdm(
                 range(self.num_epochs_),
                 ascii=True,
-                disable=(verbose <= 1)
+                disable=self._pbar_disable(verbose)
             )
             for epoch in pbar:
                 self._train(k_train_dataloader)
 
-                if _calc_metrics:
+                if self._calc_metrics(verbose):
                     k_metrics_, k_nested_metrics_ = self._metrics(
                         k_train_dataloader, k_valid_dataloader
                     )
@@ -1135,24 +1123,30 @@ class Explorer(SLMixin):
                         f'Epoch: {epoch:0{self.epochs_len_}d}, {metric_repr_}'
                     )
 
-                if self.earlystopping_:
-                    self.earlystopping_.record_metric(
-                        k_metrics_[self.earlystopping_metric_]
-                    )
+                if self.accelerator_.is_main_process:
 
-                if logger and (epoch % logger.freq_ == 0):
-                    logger.log(k_nested_metrics_, step=epoch)
+                    if self.earlystopping_:
+                        self.earlystopping_.record_metric(
+                            k_metrics_[self.earlystopping_metric_]
+                        )
+
+                    if logger and (epoch % logger.freq_ == 0):
+                        logger.log(k_nested_metrics_, step=epoch)
 
                 if self.earlystopping_ and self.earlystopping_.is_done():
+                    self.accelerator_.wait_for_everyone()
                     break
 
             _, k_nested_metrics_ = self._metrics(
                 k_train_dataloader, k_valid_dataloader
             )
 
-            if logger:
-                logger.log_params(self.parameters_dict_, k_nested_metrics_)
-                logger.close()
+            if self.accelerator_.is_main_process:
+
+                if logger:
+                    logger.log_params(self.parameters_dict_, k_nested_metrics_)
+                    logger.unwatch(self.net_)
+                    logger.close()
 
             accumulator.add(
                 {
@@ -1207,13 +1201,11 @@ class Explorer(SLMixin):
             Return the outputs.
         """
 
-        if verbose:
+        if verbose and self.accelerator_.is_local_main_process:
             print(
                 f'Inferring with parameters: {self.__repr_parameters__()} '
-                f'on devices {self.devices_}'
+                f'on devices {self.accelerator_.device}'
             )
-
-        self.net_.to(self.device_)
 
         test_dataloader = self.test_loader_fn_(
             test_dataset,
@@ -1222,6 +1214,7 @@ class Explorer(SLMixin):
             shuffle=False,
             **self.test_loader_kwargs_
         )
+        test_dataloader = self.accelerator_.prepare(test_dataloader)
 
         self.outputs_ = self._inference(test_dataloader, verbose=verbose)
 
@@ -1251,13 +1244,11 @@ class Explorer(SLMixin):
             Return the outputs.
         """
 
-        if verbose:
+        if verbose and self.accelerator_.is_local_main_process:
             print(
                 'Getting latent representation with '
                 f'parameters: {self.__repr_parameters__()}'
             )
-
-        self.net_.to(self.device_)
 
         test_dataloader = self.test_loader_fn_(
             test_dataset,
@@ -1266,6 +1257,7 @@ class Explorer(SLMixin):
             shuffle=False,
             **self.test_loader_kwargs_
         )
+        test_dataloader = self.accelerator_.prepare(test_dataloader)
 
         self.outputs_ = self._latent(test_dataloader, verbose=verbose)
 
@@ -1315,16 +1307,11 @@ class Explorer(SLMixin):
             Return itself.
         """
 
-        if isinstance(self.net_, torch.nn.DataParallel):
-            torch.save(
-                self.net_.module.state_dict(),
-                model_path
-            )
-        else:
-            torch.save(
-                self.net_.state_dict(),
-                model_path
-            )
+        self.accelerator_.wait_for_everyone()
+
+        if self.accelerator_.is_main_process:
+            unwrapped_net = self.accelerator_.unwrap_model(self.net_)
+            self.accelerator_.save(unwrapped_net.state_dict(), model_path)
 
         return self
 
@@ -1342,18 +1329,13 @@ class Explorer(SLMixin):
             Return itself.
         """
 
-        if isinstance(self.net_, torch.nn.DataParallel):
-            self.net_.module.load_state_dict(
-                torch.load(model_path, map_location=self.device_)
-            )
-        else:
-            self.net_.load_state_dict(
-                torch.load(model_path, map_location=self.device_)
-            )
+        if self.accelerator_.is_main_process:
+            unwrapped_net = self.accelerator_.unwrap_model(self.net_)
+            unwrapped_net.load_state_dict(torch.load(model_path))
 
         return self
 
-    def get_summary(self, dataset, verbose=1):
+    def get_summary(self, dataset=None, verbose=1):
         r"""Get a summary of neural network to be investigated.
 
         This function will retrieve the inferring speed, as items per
@@ -1377,55 +1359,72 @@ class Explorer(SLMixin):
             Return itself.
         """
 
-        self.net_.to(self.device_)
+        if dataset is None:
+            if self.accelerator_.is_local_main_process:
+                print(
+                    'Dataset is not provided, you can only get basic '
+                    'structure of neural network. For more detailed '
+                    'information, you should provide a sample dataset.'
+                )
 
         self.net_.eval()
 
-        loader = self.train_loader_fn_(
-            dataset,
-            batch_size=self.batch_size_,
-            num_workers=self.num_workers_,
-            shuffle=False,
-            **self.train_loader_kwargs_
-        )
-
-        sample_batch = next(iter(loader))
-
-        if not isinstance(sample_batch, (tuple, list)):
-            sample_batch = (sample_batch, )
-
-        sample_net_input, _ = self._generate_input(sample_batch)
-
-        start_ts = time.time()
-        for batch in tqdm(loader, ascii=True, disable=(verbose <= 1)):
-
-            if not isinstance(batch, (tuple, list)):
-                batch = (batch, )
-
-            net_input, _ = self._generate_input(batch)
-
-            self.net_(*net_input)
-        end_ts = time.time()
-
-        ts = end_ts - start_ts
-
-        self.summary_ = summary(
-            self.net_, input_data=sample_net_input,
-            verbose=0
-        )
-
-        divider = "=" * self.summary_.formatting.get_total_width()
-
-        if verbose:
-            print(divider)
-            print(
-                f'Inferring {len(dataset)} data in {ts:.6f}s '
-                f'[{len(dataset) / ts:.6f}it/s]'
+        if dataset is None:
+            loader = None
+            sample_net_input = None
+        else:
+            loader = self.train_loader_fn_(
+                dataset,
+                batch_size=self.batch_size_,
+                num_workers=self.num_workers_,
+                shuffle=False,
+                **self.train_loader_kwargs_
             )
-            print(
-                f'On devices: {self.devices_}'
+            loader = self.accelerator_.prepare(loader)
+
+            sample_batch = next(iter(loader))
+
+            if not isinstance(sample_batch, (tuple, list)):
+                sample_batch = (sample_batch, )
+
+            sample_net_input, _ = self._generate_input(sample_batch)
+
+            start_ts = time.time()
+            for batch in tqdm(loader,
+                              ascii=True,
+                              disable=self._pbar_disable(verbose)):
+
+                if not isinstance(batch, (tuple, list)):
+                    batch = (batch, )
+
+                net_input, _ = self._generate_input(batch)
+
+                self.net_(*net_input)
+            end_ts = time.time()
+
+            ts = end_ts - start_ts
+
+        if self.accelerator_.is_local_main_process:
+
+            self.summary_ = summary(
+                self.net_,
+                input_data=sample_net_input,
+                verbose=0
             )
-            print(self.summary_)
+
+            divider = "=" * self.summary_.formatting.get_total_width()
+
+            if verbose:
+                if dataset is None:
+                    print(self.summary_)
+                else:
+                    print(divider)
+                    print(
+                        f'Inferring {len(dataset)} data in {ts:.6f}s '
+                        f'[{len(dataset) / ts:.6f}it/s] \n'
+                        f'On devices: {self.accelerator_.device}'
+                    )
+                    print(self.summary_)
 
         return self
 

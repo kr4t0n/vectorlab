@@ -37,7 +37,9 @@ dependencies = [
     "pyyaml>=6.0",
     "wandb>=0.15.0",
     "torchinfo>=1.6.3",
-    "tensorboard>=2.6.0"
+    "tensorboard>=2.6.0",
+    "evaluate==0.4.0",
+    "accelerate>=0.18.0"
 ]
 
 [project.optional-dependencies]
@@ -54,4 +56,16 @@ full = [
     "torch-scatter>=2.0.9",
     "torch-spline-conv>=1.2.1",
     "torch-geometric>=2.0.4"
+]
+
+[tool.coverage.run]
+omit = [
+    "vectorlab/data/dataset/*"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "raise",
+    "except",
+    "warn"
 ]

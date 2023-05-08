@@ -42,6 +42,11 @@ torch-scatter
 torch-spline-conv
 torch-geometric
 
+# Huggingface related #
+#######################
+evaluate
+accelerate
+
 # utils module #
 ####################
 pytz
